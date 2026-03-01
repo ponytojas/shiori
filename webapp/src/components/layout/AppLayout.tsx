@@ -168,7 +168,7 @@ export function AppLayout({ children }: PropsWithChildren) {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur">
+      <header className="sticky top-0 z-20 bg-background/95 backdrop-blur">
         <div className="mx-auto grid h-16 max-w-6xl grid-cols-[1fr_auto_1fr] items-center px-4">
           <div className="flex items-center gap-2">
             <BrandMark />
