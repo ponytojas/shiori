@@ -31,8 +31,8 @@ function BrandMark() {
     <svg viewBox="0 0 28 28" className="h-7 w-7" aria-hidden="true">
       <defs>
         <linearGradient id="brand-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#fff2de" />
-          <stop offset="100%" stopColor="#8f1f0a" />
+          <stop offset="0%" stopColor="#FFB449" />
+          <stop offset="100%" stopColor="#FF4D1E" />
         </linearGradient>
       </defs>
       <circle cx="14" cy="14" r="12" fill="url(#brand-gradient)" />
@@ -60,6 +60,8 @@ export function AppLayout({ children }: PropsWithChildren) {
 
       try {
         await createMutation.mutateAsync({ url: normalized })
+        setQuickAddOpen(false)
+        setQuickAddUrl('')
         setToastMessage('Saved to Inbox.')
         return true
       } catch {
