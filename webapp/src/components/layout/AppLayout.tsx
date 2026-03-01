@@ -1,6 +1,6 @@
 import { Plus } from 'lucide-react'
 import { type FormEvent, type PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useCreateBookmarkMutation } from '@/lib/bookmarks-query'
@@ -41,6 +41,7 @@ function BrandMark() {
 }
 
 export function AppLayout({ children }: PropsWithChildren) {
+  const location = useLocation()
   const createMutation = useCreateBookmarkMutation()
   const popoverRef = useRef<HTMLDivElement | null>(null)
   const [quickAddOpen, setQuickAddOpen] = useState(false)
@@ -48,6 +49,7 @@ export function AppLayout({ children }: PropsWithChildren) {
   const [toastMessage, setToastMessage] = useState<string | null>(null)
 
   const quickAddInputRefId = useMemo(() => 'quick-add-url-input', [])
+  const activeTabIndex = useMemo(() => links.findIndex(({ to }) => location.pathname.startsWith(to)), [location.pathname])
 
   const saveBookmarkFromUrl = useCallback(
     async (rawUrl: string) => {
@@ -172,15 +174,23 @@ export function AppLayout({ children }: PropsWithChildren) {
             <BrandMark />
           </div>
 
-          <nav className="flex items-center justify-center gap-1">
+          <nav className="relative flex items-center justify-center rounded-full bg-secondary/60 p-1">
+            <span
+              className="absolute bottom-1 top-1 rounded-full bg-secondary transition-all duration-300 ease-out"
+              style={{
+                width: 'calc(50% - 4px)',
+                left: activeTabIndex <= 0 ? '4px' : 'calc(50% + 2px)',
+              }}
+              aria-hidden="true"
+            />
             {links.map(({ to, label }) => (
               <NavLink
                 key={to}
                 to={to}
                 className={({ isActive }) =>
                   cn(
-                    'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors',
-                    isActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground',
+                    'relative z-10 inline-flex min-w-24 items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors duration-300',
+                    isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
                   )
                 }
               >
