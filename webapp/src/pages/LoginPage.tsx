@@ -44,7 +44,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
 
       setStoredToken(response.token)
       onLoginSuccess()
-      navigate('/bookmarks', { replace: true })
+      navigate('/inbox', { replace: true })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to login. Please try again.'
       setError(message)
