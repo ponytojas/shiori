@@ -28,7 +28,7 @@ export function BookmarksPage() {
       {!bookmarksQuery.isLoading && bookmarks.length === 0 ? (
         <div className="p-1 text-sm text-muted-foreground">No bookmarks in Inbox yet.</div>
       ) : (
-        <div className="mx-auto max-h-[70vh] w-full max-w-3xl space-y-4 overflow-auto">
+        <div className="mx-auto w-full max-w-3xl space-y-4">
           {BOOKMARK_GROUP_ORDER.map(({ key, label }) => {
             const items = groupedBookmarks[key]
             if (!items.length) return null

@@ -167,8 +167,8 @@ export function AppLayout({ children }: PropsWithChildren) {
   }, [saveBookmarkFromUrl])
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="bg-background/95">
+    <div className="flex min-h-screen flex-col bg-background">
+      <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur">
         <div className="mx-auto grid h-16 max-w-6xl grid-cols-[1fr_auto_1fr] items-center px-4">
           <div className="flex items-center gap-2">
             <BrandMark />
@@ -238,7 +238,7 @@ export function AppLayout({ children }: PropsWithChildren) {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl p-4 md:p-6">{children}</main>
+      <main className="mx-auto w-full max-w-6xl flex-1 p-4 md:p-6">{children}</main>
 
       {toastMessage ? (
         <div className="fixed bottom-4 right-4 rounded border bg-background px-3 py-1.5 text-sm text-muted-foreground shadow-sm">{toastMessage}</div>
