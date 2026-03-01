@@ -1,10 +1,35 @@
 import { AuthApi, Configuration, TagsApi, type ModelBookmarkDTO, type ModelTagDTO, type ApiV1BookmarkTagPayload } from '@/client'
+import { getStoredToken } from '@/lib/auth'
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
+const rawApiBase = import.meta.env.VITE_API_BASE_URL?.trim() ?? ''
+const isAbsoluteApiBase = /^https?:\/\//i.test(rawApiBase)
+
+// In dev, keep requests same-origin so Vite proxy can forward /api calls and avoid browser CORS issues.
+const API_BASE = import.meta.env.DEV && isAbsoluteApiBase ? '' : rawApiBase
+
+const CONTROL_HEADER_NAME = import.meta.env.VITE_API_CONTROL_HEADER_NAME?.trim() ?? ''
+const CONTROL_HEADER_VALUE = import.meta.env.VITE_API_CONTROL_HEADER_VALUE?.trim() ?? ''
+
+function getGlobalHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {}
+
+  const token = getStoredToken()
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
+  }
+
+  if (CONTROL_HEADER_NAME && CONTROL_HEADER_VALUE) {
+    headers[CONTROL_HEADER_NAME] = CONTROL_HEADER_VALUE
+  }
+
+  return headers
+}
 
 const clientConfig = new Configuration({
   basePath: API_BASE,
   credentials: 'include',
+  headers: getGlobalHeaders(),
+  accessToken: () => getStoredToken() ?? '',
 })
 
 export const tagsApi = new TagsApi(clientConfig)
@@ -34,10 +59,6 @@ export interface CreateBookmarkInput {
   async?: boolean
 }
 
-const jsonHeaders = {
-  'Content-Type': 'application/json',
-} as const
-
 async function readJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const message = await response.text()
@@ -55,6 +76,13 @@ function createApiUrl(path: string): string {
   return new URL(path, API_BASE).toString()
 }
 
+function createRequestHeaders(extra: Record<string, string> = {}): Record<string, string> {
+  return {
+    ...getGlobalHeaders(),
+    ...extra,
+  }
+}
+
 export async function listBookmarks(params: ListBookmarksParams = {}): Promise<LegacyBookmarksResponse> {
   const query = new URLSearchParams()
 
@@ -69,6 +97,7 @@ export async function listBookmarks(params: ListBookmarksParams = {}): Promise<L
   const response = await fetch(createApiUrl(endpoint), {
     method: 'GET',
     credentials: 'include',
+    headers: createRequestHeaders(),
   })
 
   return readJson<LegacyBookmarksResponse>(response)
@@ -78,7 +107,7 @@ export async function createBookmark(input: CreateBookmarkInput): Promise<ModelB
   const response = await fetch(createApiUrl('/api/bookmarks'), {
     method: 'POST',
     credentials: 'include',
-    headers: jsonHeaders,
+    headers: createRequestHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({
       url: input.url,
       title: input.title ?? '',
@@ -101,7 +130,7 @@ export async function deleteBookmark(id: number): Promise<void> {
   const response = await fetch(createApiUrl('/api/bookmarks'), {
     method: 'DELETE',
     credentials: 'include',
-    headers: jsonHeaders,
+    headers: createRequestHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify([id]),
   })
 
@@ -121,7 +150,7 @@ export async function archiveBookmark(bookmark: ModelBookmarkDTO): Promise<Model
   const response = await fetch(createApiUrl('/api/bookmarks'), {
     method: 'PUT',
     credentials: 'include',
-    headers: jsonHeaders,
+    headers: createRequestHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({
       ...bookmark,
       tags,
@@ -137,7 +166,7 @@ export async function unarchiveBookmark(bookmark: ModelBookmarkDTO): Promise<Mod
   const response = await fetch(createApiUrl('/api/bookmarks'), {
     method: 'PUT',
     credentials: 'include',
-    headers: jsonHeaders,
+    headers: createRequestHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({
       ...bookmark,
       tags,
