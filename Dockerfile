@@ -27,6 +27,9 @@ ENV SHIORI_DIR=/shiori
 ENV SHIORI_HTTP_PORT=8080
 WORKDIR /shiori
 
+# Persist sqlite database and archives when container is recreated.
+VOLUME ["/shiori"]
+
 LABEL org.opencontainers.image.source="https://github.com/go-shiori/shiori"
 LABEL maintainer="Felipe Martin <github@fmartingr.com>"
 
