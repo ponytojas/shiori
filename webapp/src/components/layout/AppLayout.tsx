@@ -1,5 +1,5 @@
-import { Plus, Inbox, Archive } from 'lucide-react'
-import { type FormEvent, type PropsWithChildren, useCallback, useEffect, useMemo, useState } from 'react'
+import { Archive, Inbox, Plus } from 'lucide-react'
+import { type FormEvent, type PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -26,40 +26,68 @@ function normalizeUrl(raw: string): string | null {
   }
 }
 
+function BrandMark() {
+  return (
+    <svg viewBox="0 0 28 28" className="h-7 w-7" aria-hidden="true">
+      <defs>
+        <linearGradient id="brand-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#ffcf9f" />
+          <stop offset="100%" stopColor="#ff8a3c" />
+        </linearGradient>
+      </defs>
+      <circle cx="14" cy="14" r="12" fill="url(#brand-gradient)" />
+      <circle cx="14" cy="14" r="6" fill="white" fillOpacity="0.9" />
+      <circle cx="14" cy="14" r="2.2" fill="#ff9953" fillOpacity="0.8" />
+    </svg>
+  )
+}
+
 export function AppLayout({ children }: PropsWithChildren) {
   const createMutation = useCreateBookmarkMutation()
+  const popoverRef = useRef<HTMLDivElement | null>(null)
   const [quickAddOpen, setQuickAddOpen] = useState(false)
   const [quickAddUrl, setQuickAddUrl] = useState('')
-  const [quickAddMessage, setQuickAddMessage] = useState<string | null>(null)
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
 
   const quickAddInputRefId = useMemo(() => 'quick-add-url-input', [])
 
+  const saveBookmarkFromUrl = useCallback(
+    async (rawUrl: string) => {
+      const normalized = normalizeUrl(rawUrl)
+
+      if (!normalized) {
+        setToastMessage('Invalid URL in clipboard.')
+        return false
+      }
+
+      try {
+        await createMutation.mutateAsync({ url: normalized })
+        setToastMessage('Saved to Inbox.')
+        return true
+      } catch {
+        setToastMessage('Could not save bookmark.')
+        return false
+      }
+    },
+    [createMutation],
+  )
+
   const openQuickAdd = useCallback((prefilled = '') => {
     setQuickAddUrl(prefilled)
-    setQuickAddMessage(null)
     setQuickAddOpen(true)
   }, [])
 
   const submitQuickAdd = useCallback(
     async (event?: FormEvent<HTMLFormElement>) => {
       event?.preventDefault()
-      const normalized = normalizeUrl(quickAddUrl)
+      const saved = await saveBookmarkFromUrl(quickAddUrl)
 
-      if (!normalized) {
-        setQuickAddMessage('Please paste a valid URL.')
-        return
-      }
-
-      try {
-        await createMutation.mutateAsync({ url: normalized })
-        setQuickAddMessage('Saved to Inbox.')
+      if (saved) {
         setQuickAddOpen(false)
         setQuickAddUrl('')
-      } catch {
-        setQuickAddMessage('Failed to save bookmark.')
       }
     },
-    [createMutation, quickAddUrl],
+    [quickAddUrl, saveBookmarkFromUrl],
   )
 
   useEffect(() => {
@@ -73,13 +101,27 @@ export function AppLayout({ children }: PropsWithChildren) {
   }, [quickAddInputRefId, quickAddOpen])
 
   useEffect(() => {
+    if (!quickAddOpen) return
+
+    const closeOnOutside = (event: MouseEvent) => {
+      if (!popoverRef.current?.contains(event.target as Node)) {
+        setQuickAddOpen(false)
+      }
+    }
+
+    window.addEventListener('mousedown', closeOnOutside)
+    return () => window.removeEventListener('mousedown', closeOnOutside)
+  }, [quickAddOpen])
+
+  useEffect(() => {
+    if (!toastMessage) return
+
+    const timer = window.setTimeout(() => setToastMessage(null), 2400)
+    return () => window.clearTimeout(timer)
+  }, [toastMessage])
+
+  useEffect(() => {
     const handlePaste = (event: ClipboardEvent) => {
-      if (quickAddOpen) return
-
-      const text = event.clipboardData?.getData('text') ?? ''
-      const normalized = normalizeUrl(text)
-      if (!normalized) return
-
       const active = document.activeElement as HTMLElement | null
       const isTypingField =
         !!active &&
@@ -87,14 +129,17 @@ export function AppLayout({ children }: PropsWithChildren) {
 
       if (isTypingField) return
 
+      const text = event.clipboardData?.getData('text') ?? ''
+      const normalized = normalizeUrl(text)
+      if (!normalized) return
+
       event.preventDefault()
-      openQuickAdd(normalized)
-      setQuickAddMessage('Pasted URL captured. Confirm to save.')
+      void saveBookmarkFromUrl(normalized)
     }
 
     const handleKeydown = async (event: KeyboardEvent) => {
       const isPasteShortcut = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'v'
-      if (!isPasteShortcut || quickAddOpen) return
+      if (!isPasteShortcut) return
 
       const active = document.activeElement as HTMLElement | null
       const isTypingField =
@@ -109,8 +154,7 @@ export function AppLayout({ children }: PropsWithChildren) {
         if (!normalized) return
 
         event.preventDefault()
-        openQuickAdd(normalized)
-        setQuickAddMessage('Clipboard URL ready to save.')
+        void saveBookmarkFromUrl(normalized)
       } catch {
         // Ignore read failures and allow default paste behavior.
       }
@@ -123,78 +167,77 @@ export function AppLayout({ children }: PropsWithChildren) {
       window.removeEventListener('paste', handlePaste)
       window.removeEventListener('keydown', handleKeydown)
     }
-  }, [openQuickAdd, quickAddOpen])
+  }, [saveBookmarkFromUrl])
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-card/90">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-          <div className="text-sm font-semibold tracking-wide text-foreground">Shiori</div>
+      <header className="border-b bg-background/95">
+        <div className="mx-auto grid h-16 max-w-6xl grid-cols-[1fr_auto_1fr] items-center px-4">
           <div className="flex items-center gap-2">
-            <nav className="flex items-center gap-1 rounded-md bg-secondary/70 p-1">
-              {links.map(({ to, label, icon: Icon }) => (
-                <NavLink
-                  key={to}
-                  to={to}
-                  className={({ isActive }) =>
-                    cn(
-                      'inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-sm transition-colors',
-                      isActive ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
-                    )
-                  }
-                >
-                  <Icon className="h-4 w-4" />
-                  {label}
-                </NavLink>
-              ))}
-            </nav>
+            <BrandMark />
+          </div>
+
+          <nav className="flex items-center justify-center gap-1">
+            {links.map(({ to, label, icon: Icon }) => (
+              <NavLink
+                key={to}
+                to={to}
+                className={({ isActive }) =>
+                  cn(
+                    'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors',
+                    isActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground',
+                  )
+                }
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </NavLink>
+            ))}
+          </nav>
+
+          <div className="relative ml-auto" ref={popoverRef}>
             <Button
               type="button"
               variant="outline"
               size="sm"
               className="h-9 w-9 rounded-full p-0"
-              onClick={() => openQuickAdd()}
+              onClick={() => setQuickAddOpen((open) => !open)}
               aria-label="Add bookmark"
               title="Add bookmark"
             >
               <Plus className="h-4 w-4" />
             </Button>
+
+            {quickAddOpen ? (
+              <div className="absolute right-0 top-11 z-30 w-72 rounded-md border bg-background p-3 shadow-md">
+                <form className="space-y-2" onSubmit={submitQuickAdd}>
+                  <Input
+                    id={quickAddInputRefId}
+                    type="url"
+                    placeholder="https://example.com"
+                    value={quickAddUrl}
+                    onChange={(event) => setQuickAddUrl(event.target.value)}
+                    required
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setQuickAddOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit" size="sm" disabled={createMutation.isPending}>
+                      {createMutation.isPending ? 'Saving…' : 'Save'}
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            ) : null}
           </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-6xl p-4 md:p-6">{children}</main>
 
-      {quickAddOpen ? (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-foreground/20 px-4 pt-24" role="dialog" aria-modal="true">
-          <div className="w-full max-w-sm rounded-lg border bg-card p-4 shadow-lg">
-            <form className="space-y-3" onSubmit={submitQuickAdd}>
-              <p className="text-sm font-medium">Quick add</p>
-              <Input
-                id={quickAddInputRefId}
-                type="url"
-                placeholder="https://example.com"
-                value={quickAddUrl}
-                onChange={(event) => setQuickAddUrl(event.target.value)}
-                required
-              />
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="ghost" size="sm" onClick={() => setQuickAddOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" size="sm" disabled={createMutation.isPending}>
-                  {createMutation.isPending ? 'Saving…' : 'Save'}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      ) : null}
-
-      {quickAddMessage ? (
-        <div className="fixed bottom-4 right-4 rounded-md border bg-card px-3 py-2 text-sm text-muted-foreground shadow">
-          {quickAddMessage}
-        </div>
+      {toastMessage ? (
+        <div className="fixed bottom-4 right-4 rounded border bg-background px-3 py-1.5 text-sm text-muted-foreground shadow-sm">{toastMessage}</div>
       ) : null}
     </div>
   )

@@ -1,4 +1,4 @@
-import { AuthApi, Configuration, TagsApi, type ModelBookmarkDTO, type ModelTagDTO, type ApiV1BookmarkTagPayload } from '@/client'
+import { AuthApi, Configuration, TagsApi, type ApiV1BookmarkTagPayload, type ModelBookmarkDTO, type ModelTagDTO } from '@/client'
 import { getStoredToken } from '@/lib/auth'
 
 const rawApiBase = import.meta.env.VITE_API_BASE_URL?.trim() ?? ''
@@ -60,13 +60,81 @@ export interface CreateBookmarkInput {
   async?: boolean
 }
 
-async function readJson<T>(response: Response): Promise<T> {
-  if (!response.ok) {
-    const message = await response.text()
-    throw new Error(message || `Request failed: ${response.status}`)
+type MessageEnvelope<T> = {
+  ok?: boolean
+  message?: T | { error?: string } | string
+  error?: string
+}
+
+function getErrorText(payload: unknown, fallback: string): string {
+  if (!payload) return fallback
+
+  if (typeof payload === 'string') {
+    return payload || fallback
   }
 
-  return response.json() as Promise<T>
+  if (typeof payload === 'object') {
+    const record = payload as Record<string, unknown>
+    const directError = record.error
+    if (typeof directError === 'string' && directError.trim()) return directError
+
+    const message = record.message
+    if (typeof message === 'string' && message.trim()) return message
+
+    if (message && typeof message === 'object') {
+      const nestedError = (message as Record<string, unknown>).error
+      if (typeof nestedError === 'string' && nestedError.trim()) return nestedError
+    }
+  }
+
+  return fallback
+}
+
+function unwrapMessageEnvelope<T>(payload: unknown): T | unknown {
+  if (!payload || typeof payload !== 'object') {
+    return payload
+  }
+
+  const envelope = payload as MessageEnvelope<T>
+  const hasEnvelopeShape = 'ok' in envelope || 'message' in envelope
+  if (!hasEnvelopeShape) {
+    return payload
+  }
+
+  if (envelope.ok === false) {
+    throw new Error(getErrorText(envelope, 'Request failed.'))
+  }
+
+  if ('message' in envelope) {
+    return envelope.message as T
+  }
+
+  return payload
+}
+
+async function parseResponseBody(response: Response): Promise<unknown> {
+  if (response.status === 204) {
+    return null
+  }
+
+  const contentType = response.headers.get('content-type') ?? ''
+  if (!contentType.includes('application/json')) {
+    const text = await response.text()
+    return text || null
+  }
+
+  return response.json() as Promise<unknown>
+}
+
+async function readApiResponse<T>(response: Response, fallbackError: string): Promise<T> {
+  const payload = await parseResponseBody(response)
+
+  if (!response.ok) {
+    throw new Error(getErrorText(payload, `${fallbackError} (${response.status})`))
+  }
+
+  const data = unwrapMessageEnvelope<T>(payload)
+  return data as T
 }
 
 function createApiUrl(path: string): string {
@@ -101,7 +169,17 @@ export async function listBookmarks(params: ListBookmarksParams = {}): Promise<L
     headers: createRequestHeaders(),
   })
 
-  return readJson<LegacyBookmarksResponse>(response)
+  const data = await readApiResponse<LegacyBookmarksResponse>(response, 'Failed to load bookmarks')
+
+  if (!data || !Array.isArray(data.bookmarks)) {
+    throw new Error('Failed to load bookmarks: invalid response format.')
+  }
+
+  return {
+    page: typeof data.page === 'number' ? data.page : 1,
+    maxPage: typeof data.maxPage === 'number' ? data.maxPage : 1,
+    bookmarks: data.bookmarks,
+  }
 }
 
 export async function createBookmark(input: CreateBookmarkInput): Promise<ModelBookmarkDTO> {
@@ -124,7 +202,13 @@ export async function createBookmark(input: CreateBookmarkInput): Promise<ModelB
     }),
   })
 
-  return readJson<ModelBookmarkDTO>(response)
+  const data = await readApiResponse<ModelBookmarkDTO>(response, 'Failed to create bookmark')
+
+  if (!data || typeof data !== 'object' || !('url' in data)) {
+    throw new Error('Failed to create bookmark: invalid response format.')
+  }
+
+  return data
 }
 
 export async function deleteBookmark(id: number): Promise<void> {
@@ -135,9 +219,27 @@ export async function deleteBookmark(id: number): Promise<void> {
     body: JSON.stringify([id]),
   })
 
-  if (!response.ok) {
-    throw new Error((await response.text()) || `Request failed: ${response.status}`)
+  await readApiResponse<unknown>(response, 'Failed to delete bookmark')
+}
+
+async function updateBookmark(bookmark: ModelBookmarkDTO, tags: ModelTagDTO[], actionLabel: string): Promise<ModelBookmarkDTO> {
+  const response = await fetch(createApiUrl('/api/bookmarks'), {
+    method: 'PUT',
+    credentials: 'include',
+    headers: createRequestHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({
+      ...bookmark,
+      tags,
+    }),
+  })
+
+  const data = await readApiResponse<ModelBookmarkDTO>(response, actionLabel)
+
+  if (!data || typeof data !== 'object' || !('url' in data)) {
+    throw new Error(`${actionLabel}: invalid response format.`)
   }
+
+  return data
 }
 
 export async function archiveBookmark(bookmark: ModelBookmarkDTO): Promise<ModelBookmarkDTO> {
@@ -148,33 +250,12 @@ export async function archiveBookmark(bookmark: ModelBookmarkDTO): Promise<Model
     tags.push({ name: 'archive' } as ModelTagDTO)
   }
 
-  const response = await fetch(createApiUrl('/api/bookmarks'), {
-    method: 'PUT',
-    credentials: 'include',
-    headers: createRequestHeaders({ 'Content-Type': 'application/json' }),
-    body: JSON.stringify({
-      ...bookmark,
-      tags,
-    }),
-  })
-
-  return readJson<ModelBookmarkDTO>(response)
+  return updateBookmark(bookmark, tags, 'Failed to archive bookmark')
 }
 
 export async function unarchiveBookmark(bookmark: ModelBookmarkDTO): Promise<ModelBookmarkDTO> {
   const tags = (bookmark.tags ?? []).filter((tag) => tag.name?.toLowerCase() !== 'archive')
-
-  const response = await fetch(createApiUrl('/api/bookmarks'), {
-    method: 'PUT',
-    credentials: 'include',
-    headers: createRequestHeaders({ 'Content-Type': 'application/json' }),
-    body: JSON.stringify({
-      ...bookmark,
-      tags,
-    }),
-  })
-
-  return readJson<ModelBookmarkDTO>(response)
+  return updateBookmark(bookmark, tags, 'Failed to restore bookmark')
 }
 
 export async function removeArchiveTag(bookmarkId: number, tagId: number): Promise<void> {

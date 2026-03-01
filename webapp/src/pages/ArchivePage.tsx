@@ -36,10 +36,10 @@ export function ArchivePage() {
       {bookmarksQuery.error && <p className="text-sm text-red-600">Failed to load archived bookmarks.</p>}
 
       {!bookmarksQuery.isLoading && bookmarks.length === 0 ? (
-        <div className="rounded-lg border bg-card p-6 text-sm text-muted-foreground">No archived bookmarks yet.</div>
+        <div className="border p-5 text-sm text-muted-foreground">No archived bookmarks yet.</div>
       ) : (
-        <div className="grid min-h-[60vh] gap-3 md:grid-cols-[minmax(240px,320px)_1fr]">
-          <aside className="max-h-[70vh] overflow-auto rounded-lg border bg-card">
+        <div className="grid min-h-[60vh] gap-4 md:grid-cols-[minmax(240px,320px)_1fr]">
+          <aside className="max-h-[70vh] overflow-auto border">
             {bookmarks.map((bookmark) => {
               const isActive = bookmark.id === selected?.id
 
@@ -48,7 +48,7 @@ export function ArchivePage() {
                   key={bookmark.id ?? bookmark.url}
                   type="button"
                   className={`w-full border-b px-4 py-3 text-left transition-colors last:border-b-0 ${
-                    isActive ? 'bg-accent/60' : 'hover:bg-secondary/70'
+                    isActive ? 'bg-secondary/60' : 'hover:bg-secondary/30'
                   }`}
                   onClick={() => setSelectedId(bookmark.id ?? null)}
                 >
@@ -59,7 +59,7 @@ export function ArchivePage() {
             })}
           </aside>
 
-          <article className="rounded-lg border bg-card p-4 md:p-6">
+          <article className="border p-4 md:p-6">
             {selected ? (
               <div className="space-y-4">
                 <div>
