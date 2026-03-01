@@ -58,6 +58,12 @@ type HttpConfig struct {
 	ServeWebUIV2 bool   `env:"HTTP_SERVE_WEB_UI_V2,default=False"`
 	ServeSwagger bool   `env:"HTTP_SERVE_SWAGGER,default=False"`
 	SecretKey    []byte `env:"HTTP_SECRET_KEY"`
+
+	AdminUser string `env:"ADMIN_USER,default=shiori"`
+	AdminPass string `env:"ADMIN_PASS,default=gopher"`
+
+	ControlHeaderName  string `env:"CONTROL_HEADER_NAME,default="`
+	ControlHeaderValue string `env:"CONTROL_HEADER_VALUE,default="`
 	// Fiber Specific
 	BodyLimit                    int           `env:"HTTP_BODY_LIMIT,default=1024"`
 	ReadTimeout                  time.Duration `env:"HTTP_READ_TIMEOUT,default=10s"`
@@ -156,6 +162,10 @@ func (c *Config) DebugConfiguration(logger *logrus.Logger) {
 	logger.Debugf(" SHIORI_HTTP_IDLE_TIMEOUT: %s", c.Http.IDLETimeout)
 	logger.Debugf(" SHIORI_HTTP_DISABLE_KEEP_ALIVE: %t", c.Http.DisableKeepAlive)
 	logger.Debugf(" SHIORI_HTTP_DISABLE_PARSE_MULTIPART_FORM: %t", c.Http.DisablePreParseMultipartForm)
+	logger.Debugf(" SHIORI_ADMIN_USER: %s", c.Http.AdminUser)
+	logger.Debugf(" SHIORI_ADMIN_PASS: %d characters", len(c.Http.AdminPass))
+	logger.Debugf(" SHIORI_CONTROL_HEADER_NAME: %s", c.Http.ControlHeaderName)
+	logger.Debugf(" SHIORI_CONTROL_HEADER_VALUE: %d characters", len(c.Http.ControlHeaderValue))
 	logger.Debugf(" SHIORI_SSO_PROXY_AUTH_ENABLED: %t", c.Http.SSOProxyAuth)
 	logger.Debugf(" SHIORI_SSO_PROXY_AUTH_HEADER_NAME: %s", c.Http.SSOProxyAuthHeaderName)
 	logger.Debugf(" SHIORI_SSO_PROXY_AUTH_TRUSTED: %v", c.Http.SSOProxyAuthTrusted)
@@ -176,6 +186,12 @@ func ParseServerConfiguration(ctx context.Context, logger *logrus.Logger) *Confi
 	lookupers := envconfig.MultiLookuper(
 		envconfig.MapLookuper(map[string]string{"HOSTNAME": os.Getenv("HOSTNAME")}),
 		envconfig.MapLookuper(readDotEnv(logger)),
+		envconfig.MapLookuper(map[string]string{
+			"ADMIN_USER":           os.Getenv("ADMIN_USER"),
+			"ADMIN_PASS":           os.Getenv("ADMIN_PASS"),
+			"CONTROL_HEADER_NAME":  os.Getenv("CONTROL_HEADER_NAME"),
+			"CONTROL_HEADER_VALUE": os.Getenv("CONTROL_HEADER_VALUE"),
+		}),
 		envconfig.PrefixLookuper("SHIORI_", envconfig.OsLookuper()),
 	)
 

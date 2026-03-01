@@ -111,9 +111,9 @@ func initShiori(ctx context.Context, cmd *cobra.Command) (*config.Config, *depen
 	dependencies.Domains().SetStorage(domains.NewStorageDomain(dependencies, afero.NewBasePathFs(afero.NewOsFs(), cfg.Storage.DataDir)))
 	dependencies.Domains().SetTags(domains.NewTagsDomain(dependencies))
 
-	// Workaround: Get accounts to make sure at least one is present in the database.
-	// If there's no accounts in the database, create the shiori/gopher account the legacy api
-	// hardcoded in the login handler.
+	// Ensure there is at least one owner account in the database.
+	// Uses configurable admin credentials from env (ADMIN_USER / ADMIN_PASS,
+	// or SHIORI_ADMIN_USER / SHIORI_ADMIN_PASS).
 	accounts, err := dependencies.Domains().Accounts().ListAccounts(cmd.Context())
 	if err != nil {
 		cError.Printf("Failed to get owner account: %v\n", err)
@@ -122,8 +122,8 @@ func initShiori(ctx context.Context, cmd *cobra.Command) (*config.Config, *depen
 
 	if len(accounts) == 0 {
 		account := model.AccountDTO{
-			Username: "shiori",
-			Password: "gopher",
+			Username: cfg.Http.AdminUser,
+			Password: cfg.Http.AdminPass,
 			Owner:    model.Ptr(true),
 		}
 

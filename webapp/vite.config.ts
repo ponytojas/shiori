@@ -1,23 +1,29 @@
-import { fileURLToPath, URL } from 'node:url'
+import path from 'node:path'
+import { defineConfig, loadEnv } from 'vite'
+import react from '@vitejs/plugin-react'
 
-import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue'
-import vueDevTools from 'vite-plugin-vue-devtools'
-import tailwindcss from '@tailwindcss/vite'
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '')
+  const apiBaseUrl = env.VITE_API_BASE_URL?.trim()
+  const hasApiTarget = Boolean(apiBaseUrl && /^https?:\/\//i.test(apiBaseUrl))
 
-// https://vite.dev/config/
-export default defineConfig({
-  plugins: [
-    vue(),
-    vueDevTools(),
-    tailwindcss(),
-  ],
-  resolve: {
-    alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
+  return {
+    plugins: [react()],
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src'),
+      },
     },
-  },
-  css: {
-    devSourcemap: true,
-  },
+    server: {
+      proxy: hasApiTarget
+        ? {
+            '/api': {
+              target: apiBaseUrl,
+              changeOrigin: true,
+              secure: false,
+            },
+          }
+        : undefined,
+    },
+  }
 })
