@@ -174,12 +174,12 @@ export function AppLayout({ children }: PropsWithChildren) {
             <BrandMark />
           </div>
 
-          <nav className="relative flex items-center justify-center rounded-full bg-secondary/60 p-1">
+          <nav className="relative flex items-center justify-center rounded-full bg-[#F5E9DD] p-1.5">
             <span
-              className="absolute bottom-1 top-1 rounded-full bg-secondary transition-all duration-300 ease-out"
+              className="absolute bottom-1.5 top-1.5 rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.12)] ring-1 ring-[#E8D8C8] transition-all duration-300 ease-out"
               style={{
-                width: 'calc(50% - 4px)',
-                left: activeTabIndex <= 0 ? '4px' : 'calc(50% + 2px)',
+                width: 'calc(50% - 6px)',
+                left: activeTabIndex <= 0 ? '6px' : 'calc(50% + 1px)',
               }}
               aria-hidden="true"
             />
@@ -189,8 +189,8 @@ export function AppLayout({ children }: PropsWithChildren) {
                 to={to}
                 className={({ isActive }) =>
                   cn(
-                    'relative z-10 inline-flex min-w-24 items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors duration-300',
-                    isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
+                    'relative z-10 inline-flex min-w-24 items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors duration-300',
+                    isActive ? 'text-[#2B1B10]' : 'text-[#7B675A] hover:text-[#2B1B10]',
                   )
                 }
               >

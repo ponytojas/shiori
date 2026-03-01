@@ -21,9 +21,6 @@ export function ArchivePage() {
 
   return (
     <section className="space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold">Archive</h1>
-      </div>
 
       {bookmarksQuery.isLoading && <p className="text-sm text-muted-foreground">Loading archive…</p>}
       {bookmarksQuery.error && <p className="text-sm text-red-600">Failed to load archived bookmarks.</p>}
@@ -59,7 +56,7 @@ export function ArchivePage() {
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           <img
                             src={getFaviconUrl(bookmark.url ?? '')}
                             alt=""
@@ -69,7 +66,6 @@ export function ArchivePage() {
                           <p className="line-clamp-1 text-sm font-medium">{bookmark.title || bookmark.url}</p>
                           <span className="line-clamp-1 text-xs text-[#B49C8B]">{normalizeBookmarkDomain(bookmark.url)}</span>
                         </div>
-                        <p className="line-clamp-1 pl-6 text-xs text-muted-foreground">{bookmark.url}</p>
                       </div>
 
                       <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
