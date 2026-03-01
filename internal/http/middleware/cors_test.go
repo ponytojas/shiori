@@ -14,7 +14,7 @@ import (
 func TestCORSMiddleware(t *testing.T) {
 	t.Run("test single origin", func(t *testing.T) {
 		allowedOrigins := []string{"http://localhost:8080"}
-		middleware := NewCORSMiddleware(allowedOrigins)
+		middleware := NewCORSMiddleware(allowedOrigins, "")
 
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -31,7 +31,7 @@ func TestCORSMiddleware(t *testing.T) {
 
 	t.Run("test multiple origins", func(t *testing.T) {
 		allowedOrigins := []string{"http://localhost:8080", "http://example.com"}
-		middleware := NewCORSMiddleware(allowedOrigins)
+		middleware := NewCORSMiddleware(allowedOrigins, "")
 
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -45,7 +45,7 @@ func TestCORSMiddleware(t *testing.T) {
 	})
 
 	t.Run("test empty origins", func(t *testing.T) {
-		middleware := NewCORSMiddleware([]string{})
+		middleware := NewCORSMiddleware([]string{}, "")
 
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -60,7 +60,7 @@ func TestCORSMiddleware(t *testing.T) {
 
 	t.Run("test OnResponse headers", func(t *testing.T) {
 		allowedOrigins := []string{"http://localhost:8080"}
-		middleware := NewCORSMiddleware(allowedOrigins)
+		middleware := NewCORSMiddleware(allowedOrigins, "")
 
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(http.MethodGet, "/", nil)

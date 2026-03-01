@@ -22,6 +22,10 @@ services:
       - "mariadb"
     environment:
       SHIORI_DIR: /srv/shiori
+      ADMIN_USER: ponytojas
+      ADMIN_PASS: Gmx$8405
+      CONTROL_HEADER_NAME: x-shiori-token
+      CONTROL_HEADER_VALUE: 34cb5b26d2af8d55c50e46abf346019f
       # SHIORI_HTTP_ROOT_PATH: /shiori/
       # SHIORI_DATABASE_URL: mysql://shiori:shiori@(mariadb)/shiori?charset=utf8mb4
       # SHIORI_DATABASE_URL: postgres://shiori:shiori@postgres/shiori?sslmode=disable

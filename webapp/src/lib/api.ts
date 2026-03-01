@@ -6,11 +6,12 @@ const isAbsoluteApiBase = /^https?:\/\//i.test(rawApiBase)
 
 // In dev, keep requests same-origin so Vite proxy can forward /api calls and avoid browser CORS issues.
 const API_BASE = import.meta.env.DEV && isAbsoluteApiBase ? '' : rawApiBase
+export const API_BASE_URL = API_BASE
 
 const CONTROL_HEADER_NAME = import.meta.env.VITE_API_CONTROL_HEADER_NAME?.trim() ?? ''
 const CONTROL_HEADER_VALUE = import.meta.env.VITE_API_CONTROL_HEADER_VALUE?.trim() ?? ''
 
-function getGlobalHeaders(): Record<string, string> {
+export function getGlobalHeaders(): Record<string, string> {
   const headers: Record<string, string> = {}
 
   const token = getStoredToken()

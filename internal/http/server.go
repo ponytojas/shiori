@@ -40,9 +40,10 @@ func (s *HttpServer) Setup(cfg *config.Config, deps *dependencies.Dependencies) 
 	// Add message response middleware if legacy message response is enabled
 	globalMiddleware = append(globalMiddleware, []model.HttpMiddleware{
 		middleware.NewMessageResponseMiddleware(deps),
+		middleware.NewControlHeaderMiddleware(cfg.Http.ControlHeaderName, cfg.Http.ControlHeaderValue),
 		middleware.NewAuthMiddleware(deps),
 		middleware.NewRequestIDMiddleware(deps),
-		middleware.NewCORSMiddleware([]string{"*"}),
+		middleware.NewCORSMiddleware([]string{"*"}, cfg.Http.ControlHeaderName),
 	}...)
 
 	if cfg.Http.AccessLog {

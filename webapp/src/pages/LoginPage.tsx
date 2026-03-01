@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { authApi } from '@/lib/api'
+import { API_BASE_URL } from '@/lib/api'
 import { setStoredToken } from '@/lib/auth'
 
 interface LoginPageProps {
@@ -30,19 +30,39 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
     setError(null)
 
     try {
-      const response = await authApi.apiV1AuthLoginPost({
-        payload: {
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(() => {
+            const name = import.meta.env.VITE_API_CONTROL_HEADER_NAME?.trim()
+            const value = import.meta.env.VITE_API_CONTROL_HEADER_VALUE?.trim()
+            return name && value ? { [name]: value } : {}
+          })(),
+        },
+        credentials: 'include',
+        body: JSON.stringify({
           username: username.trim(),
           password,
           rememberMe: true,
-        },
+        }),
       })
 
-      if (!response.token) {
+      const payload = (await response.json()) as {
+        token?: string
+        message?: { token?: string; error?: string }
+      }
+
+      if (payload.message?.error) {
+        throw new Error(payload.message.error)
+      }
+
+      const token = payload.token ?? payload.message?.token
+      if (!token) {
         throw new Error('Login succeeded but no token was returned.')
       }
 
-      setStoredToken(response.token)
+      setStoredToken(token)
       onLoginSuccess()
       navigate('/inbox', { replace: true })
     } catch (err) {
