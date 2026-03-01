@@ -1,4 +1,4 @@
-import { Archive, Inbox, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { type FormEvent, type PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
@@ -7,8 +7,8 @@ import { useCreateBookmarkMutation } from '@/lib/bookmarks-query'
 import { cn } from '@/lib/utils'
 
 const links = [
-  { to: '/inbox', label: 'Inbox', icon: Inbox },
-  { to: '/archive', label: 'Archive', icon: Archive },
+  { to: '/inbox', label: 'Inbox' },
+  { to: '/archive', label: 'Archive' },
 ]
 
 function normalizeUrl(raw: string): string | null {
@@ -30,14 +30,12 @@ function BrandMark() {
   return (
     <svg viewBox="0 0 28 28" className="h-7 w-7" aria-hidden="true">
       <defs>
-        <linearGradient id="brand-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#ffcf9f" />
-          <stop offset="100%" stopColor="#ff8a3c" />
+        <linearGradient id="brand-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#fff2de" />
+          <stop offset="100%" stopColor="#8f1f0a" />
         </linearGradient>
       </defs>
       <circle cx="14" cy="14" r="12" fill="url(#brand-gradient)" />
-      <circle cx="14" cy="14" r="6" fill="white" fillOpacity="0.9" />
-      <circle cx="14" cy="14" r="2.2" fill="#ff9953" fillOpacity="0.8" />
     </svg>
   )
 }
@@ -71,11 +69,6 @@ export function AppLayout({ children }: PropsWithChildren) {
     },
     [createMutation],
   )
-
-  const openQuickAdd = useCallback((prefilled = '') => {
-    setQuickAddUrl(prefilled)
-    setQuickAddOpen(true)
-  }, [])
 
   const submitQuickAdd = useCallback(
     async (event?: FormEvent<HTMLFormElement>) => {
@@ -171,14 +164,14 @@ export function AppLayout({ children }: PropsWithChildren) {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-background/95">
+      <header className="bg-background/95">
         <div className="mx-auto grid h-16 max-w-6xl grid-cols-[1fr_auto_1fr] items-center px-4">
           <div className="flex items-center gap-2">
             <BrandMark />
           </div>
 
           <nav className="flex items-center justify-center gap-1">
-            {links.map(({ to, label, icon: Icon }) => (
+            {links.map(({ to, label }) => (
               <NavLink
                 key={to}
                 to={to}
@@ -189,7 +182,6 @@ export function AppLayout({ children }: PropsWithChildren) {
                   )
                 }
               >
-                <Icon className="h-4 w-4" />
                 {label}
               </NavLink>
             ))}
