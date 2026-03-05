@@ -172,3 +172,21 @@ func HandleBookmarkEbook(deps model.Dependencies, c model.WebContext) {
 	c.ResponseWriter().Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.epub"`, bookmark.Title))
 	response.SendFile(c, deps.Domains().Storage(), ebookPath, nil)
 }
+
+// HandleBookmarkPDF serves uploaded PDF files inline in browser
+func HandleBookmarkPDF(deps model.Dependencies, c model.WebContext) {
+	bookmark, err := getBookmark(deps, c)
+	if err != nil || bookmark == nil {
+		return
+	}
+
+	pdfPath := model.GetPDFPath(bookmark)
+	if !deps.Domains().Storage().FileExists(pdfPath) {
+		response.SendError(c, http.StatusNotFound, "PDF not found")
+		return
+	}
+
+	c.ResponseWriter().Header().Set("Content-Type", "application/pdf")
+	c.ResponseWriter().Header().Set("Content-Disposition", fmt.Sprintf(`inline; filename="%s.pdf"`, bookmark.Title))
+	response.SendFile(c, deps.Domains().Storage(), pdfPath, nil)
+}

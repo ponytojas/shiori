@@ -62,6 +62,7 @@ func (s *HttpServer) Setup(cfg *config.Config, deps *dependencies.Dependencies) 
 	s.mux.HandleFunc("GET /bookmark/{id}/archive/file/{path...}", ToHTTPHandler(deps, handlers.HandleBookmarkArchiveFile, globalMiddleware...))
 	s.mux.HandleFunc("GET /bookmark/{id}/thumb", ToHTTPHandler(deps, handlers.HandleBookmarkThumbnail, globalMiddleware...))
 	s.mux.HandleFunc("GET /bookmark/{id}/ebook", ToHTTPHandler(deps, handlers.HandleBookmarkEbook, globalMiddleware...))
+	s.mux.HandleFunc("GET /bookmark/{id}/pdf", ToHTTPHandler(deps, handlers.HandleBookmarkPDF, globalMiddleware...))
 
 	// Add this inside Setup() where other routes are registered
 	if cfg.Http.ServeSwagger {
@@ -85,6 +86,7 @@ func (s *HttpServer) Setup(cfg *config.Config, deps *dependencies.Dependencies) 
 	s.mux.HandleFunc("PUT /api/tags", ToHTTPHandler(deps, legacyHandler.HandleRenameTag, globalMiddleware...))
 	s.mux.HandleFunc("GET /api/bookmarks", ToHTTPHandler(deps, legacyHandler.HandleGetBookmarks, globalMiddleware...))
 	s.mux.HandleFunc("POST /api/bookmarks", ToHTTPHandler(deps, legacyHandler.HandleInsertBookmark, globalMiddleware...))
+	s.mux.HandleFunc("POST /api/bookmarks/pdf", ToHTTPHandler(deps, legacyHandler.HandleInsertPDFBookmark, globalMiddleware...))
 	s.mux.HandleFunc("DELETE /api/bookmarks", ToHTTPHandler(deps, legacyHandler.HandleDeleteBookmark, globalMiddleware...))
 	s.mux.HandleFunc("PUT /api/bookmarks", ToHTTPHandler(deps, legacyHandler.HandleUpdateBookmark, globalMiddleware...))
 	s.mux.HandleFunc("PUT /api/bookmarks/tags", ToHTTPHandler(deps, legacyHandler.HandleUpdateBookmarkTags, globalMiddleware...))

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"math"
 	"net/http"
@@ -258,6 +259,78 @@ func (h *Handler) ApiInsertBookmark(w http.ResponseWriter, r *http.Request, ps h
 	checkError(err)
 }
 
+// ApiInsertPDFBookmark is handler for POST /api/bookmarks/pdf
+func (h *Handler) ApiInsertPDFBookmark(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	ctx := r.Context()
+
+	err := h.validateSession(r)
+	checkError(err)
+
+	err = r.ParseMultipartForm(32 << 20)
+	checkError(err)
+
+	pdfFile, _, err := r.FormFile("file")
+	if err != nil {
+		panic(fmt.Errorf("file is required"))
+	}
+	defer pdfFile.Close()
+
+	title := strings.TrimSpace(r.FormValue("title"))
+	tagNames := strings.TrimSpace(r.FormValue("tags"))
+
+	tags := []model.TagDTO{{Tag: model.Tag{Name: "pdf"}}}
+	if tagNames != "" {
+		for _, tagName := range strings.Split(tagNames, ",") {
+			tagName = strings.TrimSpace(tagName)
+			if tagName == "" || strings.EqualFold(tagName, "pdf") {
+				continue
+			}
+			tags = append(tags, model.TagDTO{Tag: model.Tag{Name: tagName}})
+		}
+	}
+
+	book := model.BookmarkDTO{
+		URL:     "about:blank",
+		Title:   title,
+		Excerpt: "Uploaded PDF",
+		Tags:    tags,
+		Public:  0,
+	}
+
+	if book.Title == "" {
+		book.Title = "Uploaded PDF"
+	}
+
+	results, err := h.DB.SaveBookmarks(ctx, true, book)
+	if err != nil || len(results) == 0 {
+		panic(fmt.Errorf("failed to save bookmark: %v", err))
+	}
+
+	created := results[0]
+	pdfPath := fp.Join(h.DataDir, model.GetPDFPath(&created))
+
+	err = os.MkdirAll(fp.Dir(pdfPath), os.ModePerm)
+	checkError(err)
+
+	targetFile, err := os.Create(pdfPath)
+	checkError(err)
+	defer targetFile.Close()
+
+	_, err = io.Copy(targetFile, pdfFile)
+	checkError(err)
+
+	created.URL = path.Join(h.RootPath, "bookmark", strconv.Itoa(created.ID), "pdf")
+
+	saved, err := h.DB.SaveBookmarks(ctx, false, created)
+	if err != nil || len(saved) == 0 {
+		panic(fmt.Errorf("failed to update bookmark URL: %v", err))
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(saved[0])
+	checkError(err)
+}
+
 // ApiDeleteBookmarks is handler for DELETE /api/bookmark
 func (h *Handler) ApiDeleteBookmark(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
@@ -281,10 +354,12 @@ func (h *Handler) ApiDeleteBookmark(w http.ResponseWriter, r *http.Request, ps h
 		imgPath := fp.Join(h.DataDir, "thumb", strID)
 		archivePath := fp.Join(h.DataDir, "archive", strID)
 		ebookPath := fp.Join(h.DataDir, "ebook", strID+".epub")
+		pdfPath := fp.Join(h.DataDir, "pdf", strID+".pdf")
 
 		os.Remove(imgPath)
 		os.Remove(archivePath)
 		os.Remove(ebookPath)
+		os.Remove(pdfPath)
 	}
 
 	fmt.Fprint(w, 1)

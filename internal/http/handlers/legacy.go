@@ -84,6 +84,11 @@ func (h *LegacyHandler) HandleInsertBookmark(deps model.Dependencies, c model.We
 	h.legacyHandler.ApiInsertBookmark(c.ResponseWriter(), c.Request(), h.convertParams(c.Request()))
 }
 
+// HandleInsertPDFBookmark handles POST /api/bookmarks/pdf
+func (h *LegacyHandler) HandleInsertPDFBookmark(deps model.Dependencies, c model.WebContext) {
+	h.legacyHandler.ApiInsertPDFBookmark(c.ResponseWriter(), c.Request(), h.convertParams(c.Request()))
+}
+
 // HandleDeleteBookmark handles DELETE /api/bookmarks
 func (h *LegacyHandler) HandleDeleteBookmark(deps model.Dependencies, c model.WebContext) {
 	h.legacyHandler.ApiDeleteBookmark(c.ResponseWriter(), c.Request(), h.convertParams(c.Request()))

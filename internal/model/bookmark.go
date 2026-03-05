@@ -85,3 +85,8 @@ func GetEbookPath(bookmark *BookmarkDTO) string {
 func GetArchivePath(bookmark *BookmarkDTO) string {
 	return filepath.Join("archive", strconv.Itoa(bookmark.ID))
 }
+
+// GetPDFPath returns the relative path to the uploaded PDF of a bookmark in the filesystem
+func GetPDFPath(bookmark *BookmarkDTO) string {
+	return filepath.Join("pdf", strconv.Itoa(bookmark.ID)+".pdf")
+}

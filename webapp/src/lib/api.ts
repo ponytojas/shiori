@@ -211,6 +211,34 @@ export async function createBookmark(input: CreateBookmarkInput): Promise<ModelB
   return data
 }
 
+export async function uploadPdfBookmark(file: File, input: { title?: string; tags?: string[] } = {}): Promise<ModelBookmarkDTO> {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  if (input.title?.trim()) {
+    formData.append('title', input.title.trim())
+  }
+
+  if (input.tags?.length) {
+    formData.append('tags', input.tags.map((tag) => tag.trim()).filter(Boolean).join(','))
+  }
+
+  const response = await fetch(createApiUrl('/api/bookmarks/pdf'), {
+    method: 'POST',
+    credentials: 'include',
+    headers: createRequestHeaders(),
+    body: formData,
+  })
+
+  const data = await readApiResponse<ModelBookmarkDTO>(response, 'Failed to upload PDF bookmark')
+
+  if (!data || typeof data !== 'object' || !('url' in data)) {
+    throw new Error('Failed to upload PDF bookmark: invalid response format.')
+  }
+
+  return data
+}
+
 export async function deleteBookmark(id: number): Promise<void> {
   const response = await fetch(createApiUrl('/api/bookmarks'), {
     method: 'DELETE',
