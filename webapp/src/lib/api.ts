@@ -60,11 +60,6 @@ export interface CreateBookmarkInput {
   async?: boolean
 }
 
-export interface ReadableBookmarkContent {
-  content?: string
-  html?: string
-}
-
 type MessageEnvelope<T> = {
   ok?: boolean
   message?: T | { error?: string } | string
@@ -269,30 +264,4 @@ export async function removeArchiveTag(bookmarkId: number, tagId: number): Promi
     id: bookmarkId,
     payload,
   })
-}
-
-export async function getReadableBookmark(bookmarkId: number): Promise<ReadableBookmarkContent> {
-  const endpoints = [`/api/v1/bookmarks/${bookmarkId}/readable`, `/api/v1/bookmarks/id/readable?id=${bookmarkId}`]
-
-  let lastError: Error | null = null
-
-  for (const endpoint of endpoints) {
-    try {
-      const response = await fetch(createApiUrl(endpoint), {
-        method: 'GET',
-        credentials: 'include',
-        headers: createRequestHeaders(),
-      })
-
-      const data = await readApiResponse<ReadableBookmarkContent>(response, 'Failed to load readable content')
-
-      if (data && (typeof data.content === 'string' || typeof data.html === 'string')) {
-        return data
-      }
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error('Failed to load readable content')
-    }
-  }
-
-  throw lastError ?? new Error('Failed to load readable content')
 }
