@@ -1,4 +1,5 @@
-import { Archive, BookOpenText, Trash2 } from 'lucide-react'
+import { Archive, BookOpenText, Trash2, X } from 'lucide-react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { getReadableBookmark } from '@/lib/api'
 import { useArchiveBookmarkMutation, useBookmarksQuery, useDeleteBookmarkMutation } from '@/lib/bookmarks-query'
@@ -13,50 +14,57 @@ function getFaviconUrl(rawUrl: string): string {
   }
 }
 
-async function openReadableMode(bookmarkId: number, title?: string): Promise<void> {
-  const readable = await getReadableBookmark(bookmarkId)
-  const content = readable.html || readable.content
-
-  if (!content?.trim()) {
-    throw new Error('Readable content is empty for this bookmark.')
-  }
-
-  const readerWindow = window.open('', '_blank', 'noopener,noreferrer')
-  if (!readerWindow) {
-    throw new Error('Unable to open reader window. Check popup blocker settings.')
-  }
-
-  const pageTitle = title?.trim() || 'Readable view'
-
-  readerWindow.document.write(`<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>${pageTitle}</title>
-    <style>
-      body { margin: 0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: #f8f6f1; color: #1f2937; }
-      main { max-width: 760px; margin: 0 auto; padding: 40px 20px 64px; line-height: 1.75; font-size: 1.05rem; }
-      h1,h2,h3 { line-height: 1.3; }
-      img, video { max-width: 100%; height: auto; }
-      pre { overflow-x: auto; background: #111827; color: #f9fafb; padding: 12px; border-radius: 8px; }
-      blockquote { border-left: 3px solid #d1d5db; margin-left: 0; padding-left: 14px; color: #4b5563; }
-      a { color: #2563eb; }
-    </style>
-  </head>
-  <body>
-    <main>${content}</main>
-  </body>
-</html>`)
-  readerWindow.document.close()
+function escapeHtml(raw: string): string {
+  return raw
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
 }
 
 export function BookmarksPage() {
   const bookmarksQuery = useBookmarksQuery(false)
   const archiveMutation = useArchiveBookmarkMutation()
   const deleteMutation = useDeleteBookmarkMutation()
+  const [isReaderOpen, setIsReaderOpen] = useState(false)
+  const [isReaderLoading, setIsReaderLoading] = useState(false)
+  const [readerTitle, setReaderTitle] = useState('Readable view')
+  const [readerError, setReaderError] = useState<string | null>(null)
+  const [readerHtml, setReaderHtml] = useState('')
+
   const bookmarks = bookmarksQuery.data ?? []
   const groupedBookmarks = groupBookmarksBySavedDate(bookmarks)
+
+  const handleOpenReader = async (bookmarkId: number, title?: string) => {
+    setIsReaderOpen(true)
+    setIsReaderLoading(true)
+    setReaderError(null)
+    setReaderTitle(title?.trim() || 'Readable view')
+
+    try {
+      const readable = await getReadableBookmark(bookmarkId)
+      const html = readable.html?.trim()
+      const content = readable.content?.trim()
+
+      if (html) {
+        setReaderHtml(html)
+        return
+      }
+
+      if (content) {
+        setReaderHtml(`<p>${escapeHtml(content).replace(/\n/g, '<br />')}</p>`)
+        return
+      }
+
+      setReaderError('Readable content is empty for this bookmark.')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not open reading mode.'
+      setReaderError(message)
+    } finally {
+      setIsReaderLoading(false)
+    }
+  }
 
   return (
     <section className="space-y-4">
@@ -119,13 +127,7 @@ export function BookmarksPage() {
                           onClick={async (event) => {
                             event.stopPropagation()
                             if (!bookmark.id) return
-
-                            try {
-                              await openReadableMode(bookmark.id, bookmark.title)
-                            } catch (error) {
-                              const message = error instanceof Error ? error.message : 'Could not open reading mode.'
-                              window.alert(message)
-                            }
+                            await handleOpenReader(bookmark.id, bookmark.title)
                           }}
                         >
                           <BookOpenText className="h-3.5 w-3.5" />
@@ -167,6 +169,35 @@ export function BookmarksPage() {
               </section>
             )
           })}
+        </div>
+      )}
+
+      {isReaderOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setIsReaderOpen(false)}>
+          <div
+            className="flex h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl bg-[#f8f6f1] shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-black/10 px-4 py-3">
+              <h3 className="line-clamp-1 text-sm font-semibold">{readerTitle}</h3>
+              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setIsReaderOpen(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+              {isReaderLoading && <p className="text-sm text-muted-foreground">Loading readable content…</p>}
+
+              {!isReaderLoading && readerError && <p className="text-sm text-red-600">{readerError}</p>}
+
+              {!isReaderLoading && !readerError && (
+                <article
+                  className="prose prose-sm max-w-none leading-relaxed text-[#1f2937]"
+                  dangerouslySetInnerHTML={{ __html: readerHtml }}
+                />
+              )}
+            </div>
+          </div>
         </div>
       )}
     </section>
