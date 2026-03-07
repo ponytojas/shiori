@@ -101,3 +101,20 @@ func getTokenFromCookie(r *http.Request) string {
 	}
 	return cookie.Value
 }
+
+// AllowHeaderOnlyShortcutAuth returns true when the endpoint explicitly allows
+// bypassing JWT auth and the request contains a valid control header.
+func AllowHeaderOnlyShortcutAuth(deps model.Dependencies, c model.WebContext) bool {
+	httpCfg := deps.Config().Http
+	if httpCfg == nil || !httpCfg.AllowHeaderOnlyShortcutAuth {
+		return false
+	}
+
+	headerName := strings.TrimSpace(httpCfg.ControlHeaderName)
+	headerValue := strings.TrimSpace(httpCfg.ControlHeaderValue)
+	if headerName == "" || headerValue == "" {
+		return false
+	}
+
+	return c.Request().Header.Get(headerName) == headerValue
+}

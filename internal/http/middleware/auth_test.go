@@ -99,6 +99,42 @@ func TestAuthMiddleware(t *testing.T) {
 	})
 }
 
+func TestAllowHeaderOnlyShortcutAuth(t *testing.T) {
+	logger := logrus.New()
+	cfg, deps := testutil.GetTestConfigurationAndDependencies(t, context.TODO(), logger)
+
+	t.Run("disabled flag returns false", func(t *testing.T) {
+		cfg.Http.AllowHeaderOnlyShortcutAuth = false
+		cfg.Http.ControlHeaderName = "x-shiori-token"
+		cfg.Http.ControlHeaderValue = "secret"
+
+		c, _ := testutil.NewTestWebContextWithMethod(http.MethodPost, "/api/v1/shortcuts/bookmarks",
+			testutil.WithHeader("x-shiori-token", "secret"),
+		)
+		require.False(t, AllowHeaderOnlyShortcutAuth(deps, c))
+	})
+
+	t.Run("missing control header returns false", func(t *testing.T) {
+		cfg.Http.AllowHeaderOnlyShortcutAuth = true
+		cfg.Http.ControlHeaderName = "x-shiori-token"
+		cfg.Http.ControlHeaderValue = "secret"
+
+		c, _ := testutil.NewTestWebContextWithMethod(http.MethodPost, "/api/v1/shortcuts/bookmarks")
+		require.False(t, AllowHeaderOnlyShortcutAuth(deps, c))
+	})
+
+	t.Run("valid header with enabled flag returns true", func(t *testing.T) {
+		cfg.Http.AllowHeaderOnlyShortcutAuth = true
+		cfg.Http.ControlHeaderName = "x-shiori-token"
+		cfg.Http.ControlHeaderValue = "secret"
+
+		c, _ := testutil.NewTestWebContextWithMethod(http.MethodPost, "/api/v1/shortcuts/bookmarks",
+			testutil.WithHeader("x-shiori-token", "secret"),
+		)
+		require.True(t, AllowHeaderOnlyShortcutAuth(deps, c))
+	})
+}
+
 func TestRequireLoggedInUser(t *testing.T) {
 	logger := logrus.New()
 	_, deps := testutil.GetTestConfigurationAndDependencies(t, context.TODO(), logger)

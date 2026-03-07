@@ -198,6 +198,63 @@ func TestHttpServer_Middleware(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("control header does not replace JWT on existing endpoints", func(t *testing.T) {
+		cfgWithHeader, depsWithHeader := testutil.GetTestConfigurationAndDependencies(t, ctx, logger)
+		cfgWithHeader.Http.ControlHeaderName = "x-shiori-token"
+		cfgWithHeader.Http.ControlHeaderValue = "secret"
+		cfgWithHeader.Http.AllowHeaderOnlyShortcutAuth = true
+
+		serverWithHeader := NewHttpServer(logger)
+		sWithHeader, err := serverWithHeader.Setup(cfgWithHeader, depsWithHeader)
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/system/info", nil)
+		req.Header.Set("x-shiori-token", "secret")
+		w := httptest.NewRecorder()
+		sWithHeader.mux.ServeHTTP(w, req)
+		require.Equal(t, http.StatusUnauthorized, w.Code)
+	})
+
+	t.Run("shortcut endpoint allows header-only when enabled", func(t *testing.T) {
+		cfgWithHeader, depsWithHeader := testutil.GetTestConfigurationAndDependencies(t, ctx, logger)
+		cfgWithHeader.Http.ControlHeaderName = "x-shiori-token"
+		cfgWithHeader.Http.ControlHeaderValue = "secret"
+		cfgWithHeader.Http.AllowHeaderOnlyShortcutAuth = true
+
+		serverWithHeader := NewHttpServer(logger)
+		sWithHeader, err := serverWithHeader.Setup(cfgWithHeader, depsWithHeader)
+		require.NoError(t, err)
+
+		body := strings.NewReader(`{"url":"https://example.com/from-shortcut","tags":["ios"]}`)
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/shortcuts/bookmarks", body)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("x-shiori-token", "secret")
+
+		w := httptest.NewRecorder()
+		sWithHeader.mux.ServeHTTP(w, req)
+		require.Equal(t, http.StatusCreated, w.Code)
+	})
+
+	t.Run("shortcut endpoint rejects header-only when disabled", func(t *testing.T) {
+		cfgWithHeader, depsWithHeader := testutil.GetTestConfigurationAndDependencies(t, ctx, logger)
+		cfgWithHeader.Http.ControlHeaderName = "x-shiori-token"
+		cfgWithHeader.Http.ControlHeaderValue = "secret"
+		cfgWithHeader.Http.AllowHeaderOnlyShortcutAuth = false
+
+		serverWithHeader := NewHttpServer(logger)
+		sWithHeader, err := serverWithHeader.Setup(cfgWithHeader, depsWithHeader)
+		require.NoError(t, err)
+
+		body := strings.NewReader(`{"url":"https://example.com/reject-shortcut"}`)
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/shortcuts/bookmarks", body)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("x-shiori-token", "secret")
+
+		w := httptest.NewRecorder()
+		sWithHeader.mux.ServeHTTP(w, req)
+		require.Equal(t, http.StatusUnauthorized, w.Code)
+	})
 }
 
 func TestHttpServer_APIEndpoints(t *testing.T) {

@@ -5,9 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 
+	"github.com/go-shiori/shiori/internal/database"
 	"github.com/go-shiori/shiori/internal/http/middleware"
 	"github.com/go-shiori/shiori/internal/http/response"
 	"github.com/go-shiori/shiori/internal/model"
@@ -36,6 +39,111 @@ func (p *updateCachePayload) IsValid() error {
 type readableResponseMessage struct {
 	Content string `json:"content"`
 	HTML    string `json:"html"`
+}
+
+type createShortcutBookmarkPayload struct {
+	URL   string   `json:"url" validate:"required"`
+	Title string   `json:"title"`
+	Tags  []string `json:"tags"`
+}
+
+func (p *createShortcutBookmarkPayload) IsValid() error {
+	if strings.TrimSpace(p.URL) == "" {
+		return fmt.Errorf("url should not be empty")
+	}
+
+	parsedURL, err := url.ParseRequestURI(p.URL)
+	if err != nil || parsedURL.Scheme == "" || parsedURL.Host == "" {
+		return fmt.Errorf("url should be a valid absolute URL")
+	}
+
+	return nil
+}
+
+// HandleCreateShortcutBookmark creates bookmark from minimal payload, intended for
+// automation clients (e.g. iPhone Shortcuts). By default this endpoint requires JWT.
+// If SHIORI_HTTP_ALLOW_HEADER_ONLY_SHORTCUT_AUTH is enabled, a valid control header
+// can be used instead of JWT for this endpoint only.
+func HandleCreateShortcutBookmark(deps model.Dependencies, c model.WebContext) {
+	if !c.UserIsLogged() && !middleware.AllowHeaderOnlyShortcutAuth(deps, c) {
+		response.SendError(c, http.StatusUnauthorized, "Authentication required")
+		return
+	}
+
+	var payload createShortcutBookmarkPayload
+	if err := json.NewDecoder(c.Request().Body).Decode(&payload); err != nil {
+		response.SendError(c, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	if err := payload.IsValid(); err != nil {
+		response.SendError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	bookmark := model.BookmarkDTO{
+		URL:   strings.TrimSpace(payload.URL),
+		Title: strings.TrimSpace(payload.Title),
+		Tags:  []model.TagDTO{},
+	}
+	if bookmark.Title == "" {
+		bookmark.Title = bookmark.URL
+	}
+
+	savedBookmarks, err := deps.Database().SaveBookmarks(c.Request().Context(), true, bookmark)
+	if err != nil {
+		if errors.Is(err, database.ErrAlreadyExists) {
+			response.SendError(c, http.StatusConflict, "Bookmark already exists")
+			return
+		}
+		response.SendError(c, http.StatusInternalServerError, "Failed to save bookmark")
+		return
+	}
+
+	if len(savedBookmarks) == 0 {
+		response.SendError(c, http.StatusInternalServerError, "Failed to save bookmark")
+		return
+	}
+
+	saved := savedBookmarks[0]
+	for _, tagName := range payload.Tags {
+		tagName = strings.TrimSpace(tagName)
+		if tagName == "" {
+			continue
+		}
+
+		tagDTO, err := deps.Domains().Tags().CreateTag(c.Request().Context(), model.TagDTO{Tag: model.Tag{Name: tagName}})
+		if err != nil {
+			if errors.Is(err, database.ErrAlreadyExists) {
+				tags, getErr := deps.Domains().Tags().ListTags(c.Request().Context(), model.ListTagsOptions{Search: tagName})
+				if getErr != nil {
+					response.SendError(c, http.StatusInternalServerError, "Failed to resolve tag")
+					return
+				}
+
+				for _, tag := range tags {
+					if tag.Name == tagName {
+						tagDTO = tag
+						break
+					}
+				}
+			}
+		}
+
+		if tagDTO.ID <= 0 {
+			response.SendError(c, http.StatusInternalServerError, "Failed to create tag")
+			return
+		}
+
+		if err = deps.Domains().Bookmarks().AddTagToBookmark(c.Request().Context(), saved.ID, tagDTO.ID); err != nil {
+			response.SendError(c, http.StatusInternalServerError, "Failed to assign tag")
+			return
+		}
+
+		saved.Tags = append(saved.Tags, tagDTO)
+	}
+
+	response.SendJSON(c, http.StatusCreated, saved)
 }
 
 // HandleBookmarkReadable returns the readable version of a bookmark

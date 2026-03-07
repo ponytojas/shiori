@@ -89,6 +89,82 @@ func TestHandleBookmarkReadable(t *testing.T) {
 	})
 }
 
+func TestHandleCreateShortcutBookmark(t *testing.T) {
+	logger := logrus.New()
+	ctx := context.Background()
+
+	payload := createShortcutBookmarkPayload{
+		URL:   "https://example.com/shortcut",
+		Title: "Shortcut bookmark",
+		Tags:  []string{"ios", "shortcuts"},
+	}
+
+	payloadBody, err := json.Marshal(payload)
+	require.NoError(t, err)
+
+	t.Run("rejects header-only when flag is disabled", func(t *testing.T) {
+		cfg, deps := testutil.GetTestConfigurationAndDependencies(t, ctx, logger)
+		cfg.Http.ControlHeaderName = "x-shiori-token"
+		cfg.Http.ControlHeaderValue = "secret"
+		cfg.Http.AllowHeaderOnlyShortcutAuth = false
+
+		w := testutil.PerformRequest(
+			deps,
+			HandleCreateShortcutBookmark,
+			http.MethodPost,
+			"/api/v1/shortcuts/bookmarks",
+			testutil.WithBody(string(payloadBody)),
+			testutil.WithHeader("x-shiori-token", "secret"),
+		)
+
+		require.Equal(t, http.StatusUnauthorized, w.Code)
+	})
+
+	t.Run("accepts header-only when flag is enabled", func(t *testing.T) {
+		cfg, deps := testutil.GetTestConfigurationAndDependencies(t, ctx, logger)
+		cfg.Http.ControlHeaderName = "x-shiori-token"
+		cfg.Http.ControlHeaderValue = "secret"
+		cfg.Http.AllowHeaderOnlyShortcutAuth = true
+
+		w := testutil.PerformRequest(
+			deps,
+			HandleCreateShortcutBookmark,
+			http.MethodPost,
+			"/api/v1/shortcuts/bookmarks",
+			testutil.WithBody(string(payloadBody)),
+			testutil.WithHeader("x-shiori-token", "secret"),
+		)
+
+		require.Equal(t, http.StatusCreated, w.Code)
+
+		resp := testutil.NewTestResponseFromRecorder(w)
+		resp.AssertOk(t)
+		resp.AssertMessageJSONKeyValue(t, "url", func(t *testing.T, value any) {
+			require.Equal(t, payload.URL, value)
+		})
+
+		tags, err := deps.Domains().Tags().ListTags(ctx, model.ListTagsOptions{})
+		require.NoError(t, err)
+		require.NotEmpty(t, tags)
+	})
+
+	t.Run("accepts jwt when header-only flag is disabled", func(t *testing.T) {
+		cfg, deps := testutil.GetTestConfigurationAndDependencies(t, ctx, logger)
+		cfg.Http.AllowHeaderOnlyShortcutAuth = false
+
+		w := testutil.PerformRequest(
+			deps,
+			HandleCreateShortcutBookmark,
+			http.MethodPost,
+			"/api/v1/shortcuts/bookmarks",
+			testutil.WithBody(string(payloadBody)),
+			testutil.WithFakeUser(),
+		)
+
+		require.Equal(t, http.StatusCreated, w.Code)
+	})
+}
+
 func TestHandleUpdateCache(t *testing.T) {
 	logger := logrus.New()
 	ctx := context.Background()

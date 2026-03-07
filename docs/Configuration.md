@@ -45,6 +45,7 @@ Most configuration can be set directly using environment variables or flags. The
 | `SHIORI_SSO_PROXY_AUTH_ENABLED`            | false          | No       | Enable SSO Auth Proxy Header                          |
 | `SHIORI_SSO_PROXY_AUTH_HEADER_NAME`        | Remote-User    | No       | List of CIDRs of trusted proxies                      |
 | `SHIORI_SSO_PROXY_AUTH_TRUSTED`            | 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, fc00::/7    | No       | List of CIDRs of trusted proxies                 |
+| `SHIORI_HTTP_ALLOW_HEADER_ONLY_SHORTCUT_AUTH` | False       | No       | Allow `/api/v1/shortcuts/bookmarks` to use only control header auth (without JWT). Disabled by default. |
 
 ### Storage Configuration
 

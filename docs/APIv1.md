@@ -16,3 +16,23 @@ The main goals of this new API are:
 The current status of this new API can be checked [here](https://github.com/go-shiori/shiori/issues/640).
 
 Since the API is self-docummented, you can check the API documentation by [running the server locally](./Contribute.md#running-the-server-locally) and visiting the [`/swagger/index.html` endpoint](http://localhost:8080/swagger/index.html).
+
+## Shortcut endpoint (header-only optional)
+
+Shiori exposes `POST /api/v1/shortcuts/bookmarks` for automation clients like iPhone Shortcuts.
+
+Payload:
+
+```json
+{
+  "url": "https://example.com",
+  "title": "Optional title",
+  "tags": ["optional", "tags"]
+}
+```
+
+Authentication behavior:
+
+- Default: requires JWT like other API v1 endpoints.
+- Optional: if `SHIORI_HTTP_ALLOW_HEADER_ONLY_SHORTCUT_AUTH=true`, this endpoint can be called with the configured control header only (`SHIORI_CONTROL_HEADER_NAME` + `SHIORI_CONTROL_HEADER_VALUE`) and no JWT.
+- Other endpoints are unchanged and still require JWT.

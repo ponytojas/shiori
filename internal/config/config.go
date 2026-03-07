@@ -75,6 +75,8 @@ type HttpConfig struct {
 	SSOProxyAuth           bool     `env:"SSO_PROXY_AUTH_ENABLED,default=false"`
 	SSOProxyAuthHeaderName string   `env:"SSO_PROXY_AUTH_HEADER_NAME,default=Remote-User"`
 	SSOProxyAuthTrusted    []string `env:"SSO_PROXY_AUTH_TRUSTED,default=10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, fc00::/7"`
+
+	AllowHeaderOnlyShortcutAuth bool `env:"HTTP_ALLOW_HEADER_ONLY_SHORTCUT_AUTH,default=False"`
 }
 
 // SetDefaults sets the default values for the configuration
@@ -169,6 +171,7 @@ func (c *Config) DebugConfiguration(logger *logrus.Logger) {
 	logger.Debugf(" SHIORI_SSO_PROXY_AUTH_ENABLED: %t", c.Http.SSOProxyAuth)
 	logger.Debugf(" SHIORI_SSO_PROXY_AUTH_HEADER_NAME: %s", c.Http.SSOProxyAuthHeaderName)
 	logger.Debugf(" SHIORI_SSO_PROXY_AUTH_TRUSTED: %v", c.Http.SSOProxyAuthTrusted)
+	logger.Debugf(" SHIORI_HTTP_ALLOW_HEADER_ONLY_SHORTCUT_AUTH: %t", c.Http.AllowHeaderOnlyShortcutAuth)
 }
 
 func (c *Config) IsValid() error {
