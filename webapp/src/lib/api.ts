@@ -270,6 +270,16 @@ async function updateBookmark(bookmark: ModelBookmarkDTO, tags: ModelTagDTO[], a
   return data
 }
 
+export async function updateBookmarkTagsByName(bookmark: ModelBookmarkDTO, tagNames: string[]): Promise<ModelBookmarkDTO> {
+  const normalizedTags = tagNames
+    .map((name) => name.trim())
+    .filter(Boolean)
+    .filter((name, index, values) => values.indexOf(name) === index)
+    .map((name) => ({ name }) as ModelTagDTO)
+
+  return updateBookmark(bookmark, normalizedTags, 'Failed to update bookmark tags')
+}
+
 export async function archiveBookmark(bookmark: ModelBookmarkDTO): Promise<ModelBookmarkDTO> {
   const tags = bookmark.tags ? [...bookmark.tags] : []
   const hasArchiveTag = tags.some((tag) => tag.name?.toLowerCase() === 'archive')

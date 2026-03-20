@@ -29,6 +29,21 @@ Shiori is a simple bookmarks manager written in the Go language. Intended as a s
 
 All documentation is available in the [docs folder][documentation]. If you think there is incomplete or incorrect information, feel free to edit it by submitting a pull request.
 
+## Operational Reading MVP
+
+This repository now includes a small operational-reading layer in the web Inbox.
+
+- Shiori bookmarks remain the single source of truth.
+- The workflow uses existing bookmark tags such as `leer-hoy`, `rapido`, `foco`, and `inspiracion`.
+- The Inbox surfaces a `leer-hoy` shortlist, lightweight search, workflow filters, and quick operational tag toggles without introducing a second store.
+
+Use it from `/bookmarks`:
+
+1. Save bookmarks as usual.
+2. Mark a few items with `leer-hoy`, `rapido`, `foco`, or `inspiracion` directly from Inbox.
+3. Switch workflow chips to narrow the list.
+4. Use search to reduce the visible set when Inbox grows.
+
 ## License
 
 Shiori is distributed under the terms of the [MIT license][mit], which means you can use it and modify it however you want. However, if you make an enhancement for it, if possible, please send a pull request.

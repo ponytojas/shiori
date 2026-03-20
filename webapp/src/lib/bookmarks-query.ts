@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { ModelBookmarkDTO } from '@/client'
-import { archiveBookmark, createBookmark, deleteBookmark, listBookmarks, tagsApi, unarchiveBookmark, uploadPdfBookmark } from '@/lib/api'
+import { archiveBookmark, createBookmark, deleteBookmark, listBookmarks, tagsApi, unarchiveBookmark, updateBookmarkTagsByName, uploadPdfBookmark } from '@/lib/api'
+import { getBookmarkTagNames } from '@/lib/operational-reading'
 
 export const bookmarkKeys = {
   all: ['bookmarks'] as const,
-  list: (params: { archived?: boolean }) => [...bookmarkKeys.all, params] as const,
+  list: (params: { archived?: boolean; keyword?: string; tags?: string[]; exclude?: string[] }) => [...bookmarkKeys.all, params] as const,
   tags: ['tags'] as const,
 }
 
@@ -12,12 +13,42 @@ function isArchived(bookmark: ModelBookmarkDTO): boolean {
   return (bookmark.tags ?? []).some((tag) => tag.name?.toLowerCase() === 'archive')
 }
 
-export function useBookmarksQuery(archived = false) {
+export interface UseBookmarksQueryOptions {
+  archived?: boolean
+  keyword?: string
+  tags?: string[]
+  exclude?: string[]
+}
+
+function normalizeQueryOptions(options: UseBookmarksQueryOptions) {
+  const normalizeList = (values?: string[]) =>
+    values
+      ?.map((value) => value.trim())
+      .filter(Boolean)
+      .sort() ?? []
+
+  return {
+    archived: options.archived ?? false,
+    keyword: options.keyword?.trim() ?? '',
+    tags: normalizeList(options.tags),
+    exclude: normalizeList(options.exclude),
+  }
+}
+
+export function useBookmarksQuery(optionsOrArchived: boolean | UseBookmarksQueryOptions = false) {
+  const options = typeof optionsOrArchived === 'boolean' ? { archived: optionsOrArchived } : optionsOrArchived
+  const normalizedOptions = normalizeQueryOptions(options)
+
   return useQuery({
-    queryKey: bookmarkKeys.list({ archived }),
+    queryKey: bookmarkKeys.list(normalizedOptions),
     queryFn: async () => {
-      const response = await listBookmarks()
-      return response.bookmarks.filter((bookmark) => isArchived(bookmark) === archived)
+      const response = await listBookmarks({
+        keyword: normalizedOptions.keyword || undefined,
+        tags: normalizedOptions.tags,
+        exclude: normalizedOptions.exclude,
+      })
+
+      return response.bookmarks.filter((bookmark) => isArchived(bookmark) === normalizedOptions.archived)
     },
   })
 }
@@ -83,6 +114,27 @@ export function useUnarchiveBookmarkMutation() {
 
   return useMutation({
     mutationFn: (bookmark: ModelBookmarkDTO) => unarchiveBookmark(bookmark),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: bookmarkKeys.all })
+      await queryClient.invalidateQueries({ queryKey: bookmarkKeys.tags })
+    },
+  })
+}
+
+export function useOperationalTagToggleMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (payload: { bookmark: ModelBookmarkDTO; tagName: string }) => {
+      const currentTags = getBookmarkTagNames(payload.bookmark)
+      const normalizedTag = payload.tagName.trim().toLowerCase()
+
+      const nextTags = currentTags.includes(normalizedTag)
+        ? currentTags.filter((tag) => tag !== normalizedTag)
+        : [...currentTags, normalizedTag]
+
+      return updateBookmarkTagsByName(payload.bookmark, nextTags)
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: bookmarkKeys.all })
       await queryClient.invalidateQueries({ queryKey: bookmarkKeys.tags })
