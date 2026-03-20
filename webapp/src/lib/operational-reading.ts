@@ -10,10 +10,10 @@ export type OperationalReadingPreset = {
 
 export const OPERATIONAL_READING_PRESETS: OperationalReadingPreset[] = [
   { mode: 'all', label: 'Inbox', description: 'All active bookmarks' },
-  { mode: 'leer-hoy', label: 'Leer hoy', description: 'Shortlist for today' },
-  { mode: 'rapido', label: 'Rapido', description: 'Fast reads' },
-  { mode: 'foco', label: 'Foco', description: 'Deep work reading' },
-  { mode: 'inspiracion', label: 'Inspiracion', description: 'Idea fuel' },
+  { mode: 'leer-hoy', label: 'Today', description: 'Shortlist for today' },
+  { mode: 'rapido', label: 'Quick reads', description: 'Fast reads' },
+  { mode: 'foco', label: 'Focus', description: 'Deep work reading' },
+  { mode: 'inspiracion', label: 'Inspiration', description: 'Idea fuel' },
 ]
 
 export const OPERATIONAL_TAGS: Exclude<OperationalReadingMode, 'all'>[] = ['leer-hoy', 'rapido', 'foco', 'inspiracion']
