@@ -270,14 +270,56 @@ async function updateBookmark(bookmark: ModelBookmarkDTO, tags: ModelTagDTO[], a
   return data
 }
 
-export async function updateBookmarkTagsByName(bookmark: ModelBookmarkDTO, tagNames: string[]): Promise<ModelBookmarkDTO> {
-  const normalizedTags = tagNames
-    .map((name) => name.trim())
-    .filter(Boolean)
-    .filter((name, index, values) => values.indexOf(name) === index)
-    .map((name) => ({ name }) as ModelTagDTO)
+async function getOrCreateTagByName(tagName: string): Promise<ModelTagDTO> {
+  const normalizedName = tagName.trim().toLowerCase()
+  if (!normalizedName) {
+    throw new Error('Failed to update bookmark tags: invalid tag name')
+  }
 
-  return updateBookmark(bookmark, normalizedTags, 'Failed to update bookmark tags')
+  const existingTags = await tagsApi.apiV1TagsGet({ search: normalizedName })
+  const exactMatch = existingTags.find((tag) => tag.name?.trim().toLowerCase() === normalizedName)
+  if (exactMatch) {
+    return exactMatch
+  }
+
+  return tagsApi.apiV1TagsPost({ tag: { name: normalizedName } as ModelTagDTO })
+}
+
+export async function toggleBookmarkTagByName(bookmark: ModelBookmarkDTO, tagName: string): Promise<ModelBookmarkDTO> {
+  if (!bookmark.id) {
+    throw new Error('Failed to update bookmark tags: bookmark id is required')
+  }
+
+  const normalizedTag = tagName.trim().toLowerCase()
+  if (!normalizedTag) {
+    throw new Error('Failed to update bookmark tags: invalid tag name')
+  }
+
+  const currentTags = await authApi.apiV1BookmarksIdTagsGet({ id: bookmark.id })
+  const existingTag = currentTags.find((tag) => tag.name?.trim().toLowerCase() === normalizedTag)
+
+  if (existingTag?.id) {
+    await authApi.apiV1BookmarksIdTagsDelete({
+      id: bookmark.id,
+      payload: { tagId: existingTag.id },
+    })
+  } else {
+    const tag = await getOrCreateTagByName(normalizedTag)
+    if (!tag.id) {
+      throw new Error('Failed to update bookmark tags: tag id is required')
+    }
+
+    await authApi.apiV1BookmarksIdTagsPost({
+      id: bookmark.id,
+      payload: { tagId: tag.id },
+    })
+  }
+
+  const refreshedTags = await authApi.apiV1BookmarksIdTagsGet({ id: bookmark.id })
+  return {
+    ...bookmark,
+    tags: refreshedTags,
+  }
 }
 
 export async function archiveBookmark(bookmark: ModelBookmarkDTO): Promise<ModelBookmarkDTO> {

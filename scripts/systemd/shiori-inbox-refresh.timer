@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Shiori inbox refresh every 2 hours
+
+[Timer]
+OnBootSec=5m
+OnUnitActiveSec=2h
+Unit=shiori-inbox-refresh.service
+Persistent=true
+
+[Install]
+WantedBy=timers.target

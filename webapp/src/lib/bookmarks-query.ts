@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { ModelBookmarkDTO } from '@/client'
-import { archiveBookmark, createBookmark, deleteBookmark, listBookmarks, tagsApi, unarchiveBookmark, updateBookmarkTagsByName, uploadPdfBookmark } from '@/lib/api'
-import { getBookmarkTagNames } from '@/lib/operational-reading'
+import { archiveBookmark, createBookmark, deleteBookmark, listBookmarks, tagsApi, toggleBookmarkTagByName, unarchiveBookmark, uploadPdfBookmark } from '@/lib/api'
 
 export const bookmarkKeys = {
   all: ['bookmarks'] as const,
@@ -126,16 +125,19 @@ export function useOperationalTagToggleMutation() {
 
   return useMutation({
     mutationFn: async (payload: { bookmark: ModelBookmarkDTO; tagName: string }) => {
-      const currentTags = getBookmarkTagNames(payload.bookmark)
-      const normalizedTag = payload.tagName.trim().toLowerCase()
-
-      const nextTags = currentTags.includes(normalizedTag)
-        ? currentTags.filter((tag) => tag !== normalizedTag)
-        : [...currentTags, normalizedTag]
-
-      return updateBookmarkTagsByName(payload.bookmark, nextTags)
+      return toggleBookmarkTagByName(payload.bookmark, payload.tagName)
     },
-    onSuccess: async () => {
+    onSuccess: async (updatedBookmark) => {
+      queryClient.setQueriesData({ queryKey: bookmarkKeys.all }, (existing: unknown) => {
+        if (!Array.isArray(existing)) return existing
+
+        return existing.map((bookmark) => {
+          if (!bookmark || typeof bookmark !== 'object') return bookmark
+          const candidate = bookmark as ModelBookmarkDTO
+          return candidate.id === updatedBookmark.id ? updatedBookmark : candidate
+        })
+      })
+
       await queryClient.invalidateQueries({ queryKey: bookmarkKeys.all })
       await queryClient.invalidateQueries({ queryKey: bookmarkKeys.tags })
     },

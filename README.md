@@ -44,6 +44,16 @@ Use it from `/bookmarks`:
 3. Switch workflow chips to narrow the list.
 4. Use search to reduce the visible set when Inbox grows.
 
+## Inbox Refresh Automation
+
+The repository also includes a refresh flow for the Inbox layer.
+
+- `shiori refresh-inbox` refreshes bookmark title metadata and recalculates the workflow tags for non-archived bookmarks.
+- `scripts/refresh_inbox.sh` is the scheduler-friendly wrapper script.
+- `scripts/systemd/` includes a user-level service and timer that run the refresh every 2 hours.
+
+Setup details are documented in [docs/inbox-refresh-automation.md](docs/inbox-refresh-automation.md).
+
 ## License
 
 Shiori is distributed under the terms of the [MIT license][mit], which means you can use it and modify it however you want. However, if you make an enhancement for it, if possible, please send a pull request.

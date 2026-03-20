@@ -35,6 +35,7 @@ func ShioriCmd() *cobra.Command {
 		addCmd(),
 		printCmd(),
 		updateCmd(),
+		refreshInboxCmd(),
 		deleteCmd(),
 		openCmd(),
 		importCmd(),

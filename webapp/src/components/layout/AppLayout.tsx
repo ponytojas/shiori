@@ -236,6 +236,7 @@ export function AppLayout({ children }: PropsWithChildren) {
             ) : null}
           </div>
         </div>
+        <div className="h-8 bg-gradient-to-b from-background via-background/80 to-transparent" />
       </header>
 
       <main className="mx-auto w-full max-w-6xl flex-1 p-4 md:p-6">{children}</main>
