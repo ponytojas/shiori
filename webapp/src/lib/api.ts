@@ -1,4 +1,4 @@
-import { AuthApi, Configuration, TagsApi, type ApiV1BookmarkTagPayload, type ModelBookmarkDTO, type ModelTagDTO } from '@/client'
+import { AuthApi, Configuration, TagsApi, type ModelBookmarkDTO, type ModelTagDTO } from '@/client'
 import { getStoredToken } from '@/lib/auth'
 
 const rawApiBase = import.meta.env.VITE_API_BASE_URL?.trim() ?? ''
@@ -276,13 +276,24 @@ async function getOrCreateTagByName(tagName: string): Promise<ModelTagDTO> {
     throw new Error('Failed to update bookmark tags: invalid tag name')
   }
 
-  const existingTags = await tagsApi.apiV1TagsGet({ search: normalizedName })
+  const searchRes = await fetch(createApiUrl(`/api/v1/tags?search=${encodeURIComponent(normalizedName)}`), {
+    method: 'GET',
+    credentials: 'include',
+    headers: createRequestHeaders(),
+  })
+  const existingTags = await readApiResponse<ModelTagDTO[]>(searchRes, 'Failed to search tags')
   const exactMatch = existingTags.find((tag) => tag.name?.trim().toLowerCase() === normalizedName)
   if (exactMatch) {
     return exactMatch
   }
 
-  return tagsApi.apiV1TagsPost({ tag: { name: normalizedName } as ModelTagDTO })
+  const createRes = await fetch(createApiUrl('/api/v1/tags'), {
+    method: 'POST',
+    credentials: 'include',
+    headers: createRequestHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ name: normalizedName }),
+  })
+  return readApiResponse<ModelTagDTO>(createRes, 'Failed to create tag')
 }
 
 export async function toggleBookmarkTagByName(bookmark: ModelBookmarkDTO, tagName: string): Promise<ModelBookmarkDTO> {
@@ -295,27 +306,47 @@ export async function toggleBookmarkTagByName(bookmark: ModelBookmarkDTO, tagNam
     throw new Error('Failed to update bookmark tags: invalid tag name')
   }
 
-  const currentTags = await authApi.apiV1BookmarksIdTagsGet({ id: bookmark.id })
+  const tagsRes = await fetch(createApiUrl(`/api/v1/bookmarks/${bookmark.id}/tags`), {
+    method: 'GET',
+    credentials: 'include',
+    headers: createRequestHeaders(),
+  })
+  const currentTags = await readApiResponse<ModelTagDTO[]>(tagsRes, 'Failed to get bookmark tags')
   const existingTag = currentTags.find((tag) => tag.name?.trim().toLowerCase() === normalizedTag)
 
   if (existingTag?.id) {
-    await authApi.apiV1BookmarksIdTagsDelete({
-      id: bookmark.id,
-      payload: { tagId: existingTag.id },
+    const deleteRes = await fetch(createApiUrl(`/api/v1/bookmarks/${bookmark.id}/tags`), {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: createRequestHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ tag_id: existingTag.id }),
     })
+    if (!deleteRes.ok) {
+      throw new Error(`Failed to remove tag (${deleteRes.status})`)
+    }
   } else {
     const tag = await getOrCreateTagByName(normalizedTag)
     if (!tag.id) {
       throw new Error('Failed to update bookmark tags: tag id is required')
     }
 
-    await authApi.apiV1BookmarksIdTagsPost({
-      id: bookmark.id,
-      payload: { tagId: tag.id },
+    const addRes = await fetch(createApiUrl(`/api/v1/bookmarks/${bookmark.id}/tags`), {
+      method: 'POST',
+      credentials: 'include',
+      headers: createRequestHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ tag_id: tag.id }),
     })
+    if (!addRes.ok) {
+      throw new Error(`Failed to add tag (${addRes.status})`)
+    }
   }
 
-  const refreshedTags = await authApi.apiV1BookmarksIdTagsGet({ id: bookmark.id })
+  const refreshRes = await fetch(createApiUrl(`/api/v1/bookmarks/${bookmark.id}/tags`), {
+    method: 'GET',
+    credentials: 'include',
+    headers: createRequestHeaders(),
+  })
+  const refreshedTags = await readApiResponse<ModelTagDTO[]>(refreshRes, 'Failed to refresh bookmark tags')
   return {
     ...bookmark,
     tags: refreshedTags,
@@ -339,9 +370,13 @@ export async function unarchiveBookmark(bookmark: ModelBookmarkDTO): Promise<Mod
 }
 
 export async function removeArchiveTag(bookmarkId: number, tagId: number): Promise<void> {
-  const payload: ApiV1BookmarkTagPayload = { tagId }
-  await authApi.apiV1BookmarksIdTagsDelete({
-    id: bookmarkId,
-    payload,
+  const res = await fetch(createApiUrl(`/api/v1/bookmarks/${bookmarkId}/tags`), {
+    method: 'DELETE',
+    credentials: 'include',
+    headers: createRequestHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ tag_id: tagId }),
   })
+  if (!res.ok) {
+    throw new Error(`Failed to remove tag (${res.status})`)
+  }
 }
