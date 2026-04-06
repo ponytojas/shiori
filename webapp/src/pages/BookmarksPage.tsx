@@ -1,4 +1,4 @@
-import { Archive, Search, Tag, Trash2 } from 'lucide-react'
+import { Archive, Check, Search, Tag, Trash2, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
@@ -44,7 +44,7 @@ export function BookmarksPage() {
   const setWorkflow = (mode: string) => {
     const nextParams = new URLSearchParams(searchParams)
 
-    if (mode === 'all') {
+    if (mode === 'all' || mode === activeMode) {
       nextParams.delete('workflow')
     } else {
       nextParams.set('workflow', mode)
@@ -148,13 +148,16 @@ export function BookmarksPage() {
                                   <button
                                     key={tag}
                                     type="button"
-                                    className="rounded-full bg-[#F5E9DD] px-2 py-0.5 text-[11px] font-medium text-[#7A5A44]"
+                                    disabled={operationalTagToggleMutation.isPending}
+                                    className="group/tag inline-flex items-center gap-1 rounded-full bg-[#F5E9DD] px-2 py-0.5 text-[11px] font-medium text-[#7A5A44] transition-colors hover:bg-[#EDCFBC] hover:text-[#5B3A28] disabled:opacity-50"
+                                    title={`Remove "${tagLabel}" tag`}
                                     onClick={(event) => {
                                       event.stopPropagation()
                                       operationalTagToggleMutation.mutate({ bookmark, tagName: tag })
                                     }}
                                   >
                                     {tagLabel}
+                                    <X className="h-2.5 w-2.5 opacity-0 transition-opacity group-hover/tag:opacity-100" />
                                   </button>
                                 )
                               })}
@@ -222,15 +225,25 @@ export function BookmarksPage() {
                                       <button
                                         key={tag}
                                         type="button"
-                                        className={`rounded-lg px-2.5 py-1.5 text-left text-xs transition-colors ${
-                                          isActive ? 'bg-[#F5E9DD] text-[#5B4334]' : 'text-[#7A6251] hover:bg-[#F8F1E6]'
+                                        disabled={operationalTagToggleMutation.isPending}
+                                        className={`group/picker inline-flex items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs transition-colors disabled:opacity-50 ${
+                                          isActive
+                                            ? 'bg-[#F5E9DD] text-[#5B4334] hover:bg-[#EDCFBC]'
+                                            : 'text-[#7A6251] hover:bg-[#F8F1E6]'
                                         }`}
+                                        title={isActive ? `Remove "${tagLabel}" tag` : `Add "${tagLabel}" tag`}
                                         onClick={(event) => {
                                           event.stopPropagation()
                                           operationalTagToggleMutation.mutate({ bookmark, tagName: tag })
                                         }}
                                       >
                                         {tagLabel}
+                                        {isActive && (
+                                          <span className="relative ml-2 inline-flex h-3 w-3 shrink-0">
+                                            <Check className="absolute h-3 w-3 transition-opacity group-hover/picker:opacity-0" />
+                                            <X className="absolute h-3 w-3 opacity-0 transition-opacity group-hover/picker:opacity-100" />
+                                          </span>
+                                        )}
                                       </button>
                                     )
                                   })}
