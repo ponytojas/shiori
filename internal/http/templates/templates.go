@@ -6,7 +6,6 @@ import (
 	"io"
 
 	"github.com/go-shiori/shiori/internal/config"
-	views "github.com/go-shiori/shiori/internal/view"
 	webapp "github.com/go-shiori/shiori/webapp"
 )
 
@@ -18,20 +17,12 @@ const (
 var templates *template.Template
 
 // SetupTemplates initializes the templates for the webserver
-func SetupTemplates(config *config.Config) error {
+func SetupTemplates(_ *config.Config) error {
 	var err error
-	fs := views.Templates
-
-	globs := []string{"*.html"}
-
-	if config.Http.ServeWebUIV2 {
-		fs = webapp.Templates
-		globs = []string{"**/*.html"}
-	}
 
 	templates, err = template.New("html").
 		Delims(leftTemplateDelim, rightTemplateDelim).
-		ParseFS(fs, globs...)
+		ParseFS(webapp.Templates, "**/*.html")
 
 	if err != nil {
 		return fmt.Errorf("failed to parse templates: %w", err)

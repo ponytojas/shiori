@@ -69,10 +69,10 @@ clean:
 run-server: generate
 	GIN_MODE=$(GIN_MODE) SHIORI_DEVELOPMENT=$(SHIORI_DEVELOPMENT) go run main.go server --log-level debug
 
-## Runs server for local development with v2 web UI
+## Runs server for local development
 .PHONY: run-server-v2
 run-server-v2: generate
-	GIN_MODE=$(GIN_MODE) SHIORI_DEVELOPMENT=$(SHIORI_DEVELOPMENT) SHIORI_HTTP_SERVE_WEB_UI_V2=true go run main.go server --log-level debug
+	GIN_MODE=$(GIN_MODE) SHIORI_DEVELOPMENT=$(SHIORI_DEVELOPMENT) go run main.go server --log-level debug
 
 ## Generate swagger docs
 .PHONY: swagger

@@ -7,6 +7,7 @@ import { WorkflowFilterBar } from '@/components/bookmarks/WorkflowFilterBar'
 import { useArchiveBookmarkMutation, useBookmarksQuery, useDeleteBookmarkMutation, useOperationalTagToggleMutation } from '@/lib/bookmarks-query'
 import { BOOKMARK_GROUP_ORDER, groupBookmarksBySavedDate, normalizeBookmarkDomain } from '@/lib/bookmark-presentation'
 import {
+  filterBookmarksByOperationalMode,
   getOperationalTags,
   OPERATIONAL_READING_PRESETS,
   OPERATIONAL_TAGS,
@@ -34,7 +35,8 @@ export function BookmarksPage() {
   const deleteMutation = useDeleteBookmarkMutation()
   const operationalTagToggleMutation = useOperationalTagToggleMutation()
   const visibleBookmarks = bookmarksQuery.data ?? []
-  const groupedBookmarks = groupBookmarksBySavedDate(visibleBookmarks)
+  const filteredBookmarks = filterBookmarksByOperationalMode(visibleBookmarks, activeMode)
+  const groupedBookmarks = groupBookmarksBySavedDate(filteredBookmarks)
   const activePreset = OPERATIONAL_READING_PRESETS.find((preset) => preset.mode === activeMode) ?? OPERATIONAL_READING_PRESETS[0]
 
   const bottomSpacerClass = useMemo(() => 'pb-28', [])
@@ -90,7 +92,7 @@ export function BookmarksPage() {
         {bookmarksQuery.isLoading && <p className="text-sm text-muted-foreground">Loading bookmarks…</p>}
         {bookmarksQuery.error && <p className="text-sm text-red-600">Failed to load bookmarks.</p>}
 
-        {!bookmarksQuery.isLoading && visibleBookmarks.length === 0 ? (
+        {!bookmarksQuery.isLoading && filteredBookmarks.length === 0 ? (
           <div className="p-1 text-sm text-muted-foreground">
             {activeMode === 'all' ? 'No bookmarks in Inbox yet.' : `No bookmarks tagged ${activePreset.label.toLowerCase()} yet.`}
           </div>
