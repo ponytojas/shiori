@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	fp "path/filepath"
@@ -78,7 +78,7 @@ func (h *Handler) ApiInsertViaExtension(w http.ResponseWriter, r *http.Request, 
 	if !exist {
 		books, err := h.DB.SaveBookmarks(ctx, true, request)
 		if err != nil {
-			log.Printf("error saving bookmark before downloading content: %s", err)
+			slog.Error("error saving bookmark before downloading content", "error", err)
 			return
 		}
 		book = books[0]
@@ -89,10 +89,11 @@ func (h *Handler) ApiInsertViaExtension(w http.ResponseWriter, r *http.Request, 
 	if contentBuffer != nil {
 		book.CreateArchive = true
 		request := core.ProcessRequest{
-			DataDir:     h.DataDir,
-			Bookmark:    book,
-			Content:     contentBuffer,
-			ContentType: contentType,
+			DataDir:       h.DataDir,
+			Bookmark:      book,
+			Content:       contentBuffer,
+			ContentType:   contentType,
+			CreateArchive: book.CreateArchive,
 		}
 
 		var isFatalErr bool
@@ -105,9 +106,9 @@ func (h *Handler) ApiInsertViaExtension(w http.ResponseWriter, r *http.Request, 
 		// If we can't process or update the saved bookmark, just log it and continue on with the
 		// request.
 		if err != nil && isFatalErr {
-			log.Printf("failed to process bookmark: %v", err)
+			slog.Error("failed to process bookmark", "error", err)
 		} else if _, err := h.DB.SaveBookmarks(ctx, false, book); err != nil {
-			log.Printf("error saving bookmark after downloading content: %s", err)
+			slog.Error("error saving bookmark after downloading content", "error", err)
 		}
 	}
 

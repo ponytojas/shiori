@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/sirupsen/logrus"
+	"log/slog"
 	"github.com/stretchr/testify/require"
 )
 
@@ -13,7 +13,7 @@ func TestHostnameVariable(t *testing.T) {
 	os.Setenv("HOSTNAME", "test_hostname")
 	defer os.Unsetenv("HOSTNAME")
 
-	log := logrus.New()
+	log := slog.Default()
 	cfg := ParseServerConfiguration(context.TODO(), log)
 
 	require.Equal(t, "test_hostname", cfg.Hostname)
@@ -43,7 +43,7 @@ func TestBackwardsCompatibility(t *testing.T) {
 				os.Unsetenv(env.env)
 			})
 
-			log := logrus.New()
+			log := slog.Default()
 			cfg := ParseServerConfiguration(context.Background(), log)
 			env.eval(t, cfg)
 		})
@@ -51,7 +51,7 @@ func TestBackwardsCompatibility(t *testing.T) {
 }
 
 func TestReadDotEnv(t *testing.T) {
-	log := logrus.New()
+	log := slog.Default()
 
 	for _, testCase := range []struct {
 		name string
@@ -93,7 +93,7 @@ func TestReadDotEnv(t *testing.T) {
 }
 
 func TestConfigSetDefaults(t *testing.T) {
-	log := logrus.New()
+	log := slog.Default()
 	cfg := ParseServerConfiguration(context.TODO(), log)
 	cfg.SetDefaults(log, false)
 
@@ -103,7 +103,7 @@ func TestConfigSetDefaults(t *testing.T) {
 }
 
 func TestConfigIsValid(t *testing.T) {
-	log := logrus.New()
+	log := slog.Default()
 
 	t.Run("valid configuration", func(t *testing.T) {
 		cfg := ParseServerConfiguration(context.TODO(), log)

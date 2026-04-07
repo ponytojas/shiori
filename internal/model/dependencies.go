@@ -1,13 +1,14 @@
 package model
 
 import (
+	"log/slog"
+
 	"github.com/go-shiori/shiori/internal/config"
-	"github.com/sirupsen/logrus"
 )
 
 // Dependencies represents the interface for application dependencies
 type Dependencies interface {
-	Logger() *logrus.Logger
+	Logger() *slog.Logger
 	Domains() DomainDependencies
 	Config() *config.Config
 	Database() DB

@@ -8,12 +8,12 @@ import (
 
 	"github.com/go-shiori/shiori/internal/model"
 	"github.com/go-shiori/shiori/internal/testutil"
-	"github.com/sirupsen/logrus"
+	"log/slog"
 	"github.com/stretchr/testify/require"
 )
 
 func TestHandleListAccounts(t *testing.T) {
-	logger := logrus.New()
+	logger := slog.Default()
 	ctx := context.Background()
 
 	t.Run("requires authentication", func(t *testing.T) {
@@ -65,7 +65,7 @@ func TestHandleListAccounts(t *testing.T) {
 }
 
 func TestHandleCreateAccount(t *testing.T) {
-	logger := logrus.New()
+	logger := slog.Default()
 	ctx := context.Background()
 
 	t.Run("requires authentication", func(t *testing.T) {
@@ -154,7 +154,7 @@ func TestHandleCreateAccount(t *testing.T) {
 }
 
 func TestHandleDeleteAccount(t *testing.T) {
-	logger := logrus.New()
+	logger := slog.Default()
 	ctx := context.Background()
 
 	t.Run("requires authentication", func(t *testing.T) {
@@ -209,7 +209,7 @@ func TestHandleDeleteAccount(t *testing.T) {
 }
 
 func TestHandleUpdateAccount(t *testing.T) {
-	logger := logrus.New()
+	logger := slog.Default()
 	ctx := context.Background()
 
 	t.Run("requires authentication", func(t *testing.T) {

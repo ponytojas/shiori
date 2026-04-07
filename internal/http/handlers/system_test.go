@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	"github.com/go-shiori/shiori/internal/testutil"
-	"github.com/sirupsen/logrus"
+	"log/slog"
 )
 
 func TestHandleLiveness(t *testing.T) {
-	logger := logrus.New()
+	logger := slog.Default()
 	_, deps := testutil.GetTestConfigurationAndDependencies(t, context.Background(), logger)
 
 	t.Run("returns build info", func(t *testing.T) {

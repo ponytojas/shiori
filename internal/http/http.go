@@ -16,7 +16,7 @@ func ToHTTPHandler(deps model.Dependencies, h model.HttpHandler, middlewares ...
 		for _, m := range middlewares {
 			if err := m.OnRequest(deps, c); err != nil {
 				// Handle middleware error
-				deps.Logger().WithError(err).Error("middleware error in request")
+				deps.Logger().Error("middleware error in request", "error", err)
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
 			}
@@ -29,7 +29,7 @@ func ToHTTPHandler(deps model.Dependencies, h model.HttpHandler, middlewares ...
 		for i := len(middlewares) - 1; i >= 0; i-- {
 			m := middlewares[i]
 			if err := m.OnResponse(deps, c); err != nil {
-				deps.Logger().WithError(err).Error("middleware error in response")
+				deps.Logger().Error("middleware error in response", "error", err)
 				return
 			}
 		}

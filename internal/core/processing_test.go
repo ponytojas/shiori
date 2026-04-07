@@ -10,13 +10,13 @@ import (
 	"github.com/go-shiori/shiori/internal/core"
 	"github.com/go-shiori/shiori/internal/model"
 	"github.com/go-shiori/shiori/internal/testutil"
-	"github.com/sirupsen/logrus"
+	"log/slog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestDownloadBookImage(t *testing.T) {
-	logger := logrus.New()
+	logger := slog.Default()
 	_, deps := testutil.GetTestConfigurationAndDependencies(t, context.TODO(), logger)
 
 	t.Run("Download Images", func(t *testing.T) {
@@ -69,28 +69,28 @@ func TestDownloadBookImage(t *testing.T) {
 }
 
 func TestProcessBookmark(t *testing.T) {
-	logger := logrus.New()
+	logger := slog.Default()
 	_, deps := testutil.GetTestConfigurationAndDependencies(t, context.TODO(), logger)
 
 	t.Run("ProcessRequest with sucssesful result", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		t.Run("Normal without image", func(t *testing.T) {
 			bookmark := model.BookmarkDTO{
-				ID:            1,
-				URL:           "https://example.com",
-				Title:         "Example",
-				Excerpt:       "This is an example article",
-				CreateEbook:   true,
-				CreateArchive: true,
+				ID:      1,
+				URL:     "https://example.com",
+				Title:   "Example",
+				Excerpt: "This is an example article",
 			}
 			content := bytes.NewBufferString("<html><head></head><body><p>This is an example article</p></body></html>")
 			request := core.ProcessRequest{
-				Bookmark:    bookmark,
-				Content:     content,
-				ContentType: "text/html",
-				DataDir:     tmpDir,
-				KeepTitle:   true,
-				KeepExcerpt: true,
+				Bookmark:      bookmark,
+				Content:       content,
+				ContentType:   "text/html",
+				DataDir:       tmpDir,
+				KeepTitle:     true,
+				KeepExcerpt:   true,
+				CreateEbook:   true,
+				CreateArchive: true,
 			}
 			expected, _, _ := core.ProcessBookmark(deps, request)
 
@@ -120,21 +120,21 @@ func TestProcessBookmark(t *testing.T) {
 		  </body>
 		</html>`
 			bookmark := model.BookmarkDTO{
-				ID:            1,
-				URL:           "https://example.com",
-				Title:         "Example",
-				Excerpt:       "This is an example article",
-				CreateEbook:   true,
-				CreateArchive: true,
+				ID:      1,
+				URL:     "https://example.com",
+				Title:   "Example",
+				Excerpt: "This is an example article",
 			}
 			content := bytes.NewBufferString(html)
 			request := core.ProcessRequest{
-				Bookmark:    bookmark,
-				Content:     content,
-				ContentType: "text/html",
-				DataDir:     tmpDir,
-				KeepTitle:   true,
-				KeepExcerpt: true,
+				Bookmark:      bookmark,
+				Content:       content,
+				ContentType:   "text/html",
+				DataDir:       tmpDir,
+				KeepTitle:     true,
+				KeepExcerpt:   true,
+				CreateEbook:   true,
+				CreateArchive: true,
 			}
 			expected, _, _ := core.ProcessBookmark(deps, request)
 
@@ -164,21 +164,21 @@ func TestProcessBookmark(t *testing.T) {
   			</body>
 			</html>`
 			bookmark := model.BookmarkDTO{
-				ID:            1,
-				URL:           "https://example.com",
-				Title:         "Example",
-				Excerpt:       "This is an example article",
-				CreateEbook:   true,
-				CreateArchive: true,
+				ID:      1,
+				URL:     "https://example.com",
+				Title:   "Example",
+				Excerpt: "This is an example article",
 			}
 			content := bytes.NewBufferString(html)
 			request := core.ProcessRequest{
-				Bookmark:    bookmark,
-				Content:     content,
-				ContentType: "text/html",
-				DataDir:     tmpDir,
-				KeepTitle:   true,
-				KeepExcerpt: true,
+				Bookmark:      bookmark,
+				Content:       content,
+				ContentType:   "text/html",
+				DataDir:       tmpDir,
+				KeepTitle:     true,
+				KeepExcerpt:   true,
+				CreateEbook:   true,
+				CreateArchive: true,
 			}
 			expected, _, _ := core.ProcessBookmark(deps, request)
 			assert.True(t, deps.Domains().Storage().FileExists(fp.Join("thumb", "1")))
@@ -198,21 +198,21 @@ func TestProcessBookmark(t *testing.T) {
 		t.Run("ProcessRequest sucssesful with empty title ", func(t *testing.T) {
 			tmpDir := t.TempDir()
 			bookmark := model.BookmarkDTO{
-				ID:            1,
-				URL:           "https://example.com",
-				Title:         "",
-				Excerpt:       "This is an example article",
-				CreateEbook:   true,
-				CreateArchive: true,
+				ID:      1,
+				URL:     "https://example.com",
+				Title:   "",
+				Excerpt: "This is an example article",
 			}
 			content := bytes.NewBufferString("<html><head></head><body><p>This is an example article</p></body></html>")
 			request := core.ProcessRequest{
-				Bookmark:    bookmark,
-				Content:     content,
-				ContentType: "text/html",
-				DataDir:     tmpDir,
-				KeepTitle:   true,
-				KeepExcerpt: true,
+				Bookmark:      bookmark,
+				Content:       content,
+				ContentType:   "text/html",
+				DataDir:       tmpDir,
+				KeepTitle:     true,
+				KeepExcerpt:   true,
+				CreateEbook:   true,
+				CreateArchive: true,
 			}
 			expected, _, _ := core.ProcessBookmark(deps, request)
 
@@ -232,21 +232,21 @@ func TestProcessBookmark(t *testing.T) {
 		t.Run("ProcessRequest sucssesful with empty Excerpt", func(t *testing.T) {
 			tmpDir := t.TempDir()
 			bookmark := model.BookmarkDTO{
-				ID:            1,
-				URL:           "https://example.com",
-				Title:         "",
-				Excerpt:       "This is an example article",
-				CreateEbook:   true,
-				CreateArchive: true,
+				ID:      1,
+				URL:     "https://example.com",
+				Title:   "",
+				Excerpt: "This is an example article",
 			}
 			content := bytes.NewBufferString("<html><head></head><body><p>This is an example article</p></body></html>")
 			request := core.ProcessRequest{
-				Bookmark:    bookmark,
-				Content:     content,
-				ContentType: "text/html",
-				DataDir:     tmpDir,
-				KeepTitle:   true,
-				KeepExcerpt: false,
+				Bookmark:      bookmark,
+				Content:       content,
+				ContentType:   "text/html",
+				DataDir:       tmpDir,
+				KeepTitle:     true,
+				KeepExcerpt:   false,
+				CreateEbook:   true,
+				CreateArchive: true,
 			}
 			expected, _, _ := core.ProcessBookmark(deps, request)
 
@@ -268,21 +268,21 @@ func TestProcessBookmark(t *testing.T) {
 			t.Run("ProcessRequest with ID zero", func(t *testing.T) {
 
 				bookmark := model.BookmarkDTO{
-					ID:            0,
-					URL:           "https://example.com",
-					Title:         "Example",
-					Excerpt:       "This is an example article",
-					CreateEbook:   true,
-					CreateArchive: true,
+					ID:      0,
+					URL:     "https://example.com",
+					Title:   "Example",
+					Excerpt: "This is an example article",
 				}
 				content := bytes.NewBufferString("<html><head></head><body><p>This is an example article</p></body></html>")
 				request := core.ProcessRequest{
-					Bookmark:    bookmark,
-					Content:     content,
-					ContentType: "text/html",
-					DataDir:     tmpDir,
-					KeepTitle:   true,
-					KeepExcerpt: true,
+					Bookmark:      bookmark,
+					Content:       content,
+					ContentType:   "text/html",
+					DataDir:       tmpDir,
+					KeepTitle:     true,
+					KeepExcerpt:   true,
+					CreateEbook:   true,
+					CreateArchive: true,
 				}
 				_, isFatal, err := core.ProcessBookmark(deps, request)
 				assert.Error(t, err)
@@ -293,21 +293,21 @@ func TestProcessBookmark(t *testing.T) {
 			t.Run("ProcessRequest that content type not zero", func(t *testing.T) {
 				tmpDir := t.TempDir()
 				bookmark := model.BookmarkDTO{
-					ID:            1,
-					URL:           "https://example.com",
-					Title:         "Example",
-					Excerpt:       "This is an example article",
-					CreateEbook:   true,
-					CreateArchive: true,
+					ID:      1,
+					URL:     "https://example.com",
+					Title:   "Example",
+					Excerpt: "This is an example article",
 				}
 				content := bytes.NewBufferString("<html><head></head><body><p>This is an example article</p></body></html>")
 				request := core.ProcessRequest{
-					Bookmark:    bookmark,
-					Content:     content,
-					ContentType: "application/pdf",
-					DataDir:     tmpDir,
-					KeepTitle:   true,
-					KeepExcerpt: true,
+					Bookmark:      bookmark,
+					Content:       content,
+					ContentType:   "application/pdf",
+					DataDir:       tmpDir,
+					KeepTitle:     true,
+					KeepExcerpt:   true,
+					CreateEbook:   true,
+					CreateArchive: true,
 				}
 				_, _, err := core.ProcessBookmark(deps, request)
 				assert.NoError(t, err)

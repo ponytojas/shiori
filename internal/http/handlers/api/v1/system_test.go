@@ -6,12 +6,12 @@ import (
 	"testing"
 
 	"github.com/go-shiori/shiori/internal/testutil"
-	"github.com/sirupsen/logrus"
+	"log/slog"
 	"github.com/stretchr/testify/require"
 )
 
 func TestHandleSystemInfo(t *testing.T) {
-	logger := logrus.New()
+	logger := slog.Default()
 	_, deps := testutil.GetTestConfigurationAndDependencies(t, context.Background(), logger)
 
 	t.Run("requires authentication", func(t *testing.T) {

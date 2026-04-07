@@ -52,7 +52,7 @@ func HandleBookmarkContent(deps model.Dependencies, c model.WebContext) {
 	}
 
 	if err := response.SendTemplate(c, "content.html", data); err != nil {
-		deps.Logger().WithError(err).Error("failed to render content template")
+		deps.Logger().Error("failed to render content template", "error", err)
 	}
 }
 
@@ -75,7 +75,7 @@ func HandleBookmarkArchive(deps model.Dependencies, c model.WebContext) {
 	}
 
 	if err := response.SendTemplate(c, "archive.html", data); err != nil {
-		deps.Logger().WithError(err).Error("failed to render archive template")
+		deps.Logger().Error("failed to render archive template", "error", err)
 	}
 }
 
@@ -93,9 +93,9 @@ func HandleBookmarkArchiveFile(deps model.Dependencies, c model.WebContext) {
 
 	resourcePath := c.Request().PathValue("path")
 
-	archive, err := deps.Domains().Archiver().GetBookmarkArchive(bookmark)
+	archive, err := deps.Domains().Archiver().GetBookmarkArchive(c.Request().Context(), bookmark)
 	if err != nil {
-		deps.Logger().WithError(err).Error("error opening archive")
+		deps.Logger().Error("error opening archive", "error", err)
 		response.SendInternalServerError(c)
 		return
 	}
@@ -108,7 +108,7 @@ func HandleBookmarkArchiveFile(deps model.Dependencies, c model.WebContext) {
 
 	content, resourceContentType, err := archive.Read(resourcePath)
 	if err != nil {
-		deps.Logger().WithError(err).Error("error reading archive file")
+		deps.Logger().Error("error reading archive file", "error", err)
 		response.SendInternalServerError(c)
 		return
 	}

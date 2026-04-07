@@ -7,12 +7,12 @@ import (
 
 	"github.com/go-shiori/shiori/internal/model"
 	"github.com/go-shiori/shiori/internal/testutil"
-	"github.com/sirupsen/logrus"
+	"log/slog"
 	"github.com/stretchr/testify/require"
 )
 
 func TestHandleLogin(t *testing.T) {
-	logger := logrus.New()
+	logger := slog.Default()
 	// _, deps := testutil.GetTestConfigurationAndDependencies(t, context.Background(), logger)
 
 	t.Run("invalid json payload", func(t *testing.T) {
@@ -76,7 +76,7 @@ func TestHandleLogin(t *testing.T) {
 }
 
 func TestHandleRefreshToken(t *testing.T) {
-	logger := logrus.New()
+	logger := slog.Default()
 	_, deps := testutil.GetTestConfigurationAndDependencies(t, context.Background(), logger)
 
 	t.Run("requires authentication", func(t *testing.T) {
@@ -105,7 +105,7 @@ func TestHandleRefreshToken(t *testing.T) {
 }
 
 func TestHandleGetMe(t *testing.T) {
-	logger := logrus.New()
+	logger := slog.Default()
 	_, deps := testutil.GetTestConfigurationAndDependencies(t, context.Background(), logger)
 
 	t.Run("requires authentication", func(t *testing.T) {
@@ -148,7 +148,7 @@ func TestHandleGetMe(t *testing.T) {
 }
 
 func TestHandleUpdateLoggedAccount(t *testing.T) {
-	logger := logrus.New()
+	logger := slog.Default()
 	_, deps := testutil.GetTestConfigurationAndDependencies(t, context.Background(), logger)
 
 	account, err := deps.Domains().Accounts().CreateAccount(context.Background(), model.AccountDTO{
@@ -221,7 +221,7 @@ func TestHandleUpdateLoggedAccount(t *testing.T) {
 }
 
 func TestHandleLogout(t *testing.T) {
-	logger := logrus.New()
+	logger := slog.Default()
 	_, deps := testutil.GetTestConfigurationAndDependencies(t, context.Background(), logger)
 
 	t.Run("requires authentication", func(t *testing.T) {

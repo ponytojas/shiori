@@ -4,13 +4,13 @@ import (
 	"context"
 	"testing"
 
-	"github.com/sirupsen/logrus"
+	"log/slog"
 	"github.com/stretchr/testify/require"
 )
 
 func TestNewAdminUser(t *testing.T) {
 	ctx := context.Background()
-	logger := logrus.New()
+	logger := slog.Default()
 	_, deps := GetTestConfigurationAndDependencies(t, ctx, logger)
 
 	t.Run("successful admin user creation", func(t *testing.T) {

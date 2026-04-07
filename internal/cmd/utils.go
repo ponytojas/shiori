@@ -6,7 +6,6 @@ import (
 	nurl "net/url"
 	"os"
 	"os/exec"
-	"path"
 	"runtime"
 	"strconv"
 	"strings"
@@ -164,8 +163,4 @@ func validateTitle(title, fallback string) string {
 	}
 
 	return validUtf
-}
-
-func SFCallerPrettyfier(frame *runtime.Frame) (string, string) {
-	return "", fmt.Sprintf("%s:%d", path.Base(frame.File), frame.Line)
 }

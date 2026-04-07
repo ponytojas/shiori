@@ -10,13 +10,13 @@ import (
 	"github.com/go-shiori/shiori/internal/domains"
 	"github.com/go-shiori/shiori/internal/model"
 	"github.com/go-shiori/shiori/internal/testutil"
-	"github.com/sirupsen/logrus"
+	"log/slog"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGenerateEbook(t *testing.T) {
-	logger := logrus.New()
+	logger := slog.Default()
 	_, deps := testutil.GetTestConfigurationAndDependencies(t, context.TODO(), logger)
 
 	t.Run("Successful ebook generate", func(t *testing.T) {

@@ -80,7 +80,7 @@ func (d *AuthDomain) CreateTokenForAccount(account *model.AccountDTO, expiration
 
 	t, err := token.SignedString(d.deps.Config().Http.SecretKey)
 	if err != nil {
-		d.deps.Logger().WithError(err).Error("error signing token")
+		d.deps.Logger().Error("error signing token", "error", err)
 	}
 
 	return t, err

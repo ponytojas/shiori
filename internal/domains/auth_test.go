@@ -9,13 +9,13 @@ import (
 	"github.com/go-shiori/shiori/internal/model"
 	"github.com/go-shiori/shiori/internal/testutil"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/sirupsen/logrus"
+	"log/slog"
 	"github.com/stretchr/testify/require"
 )
 
 func TestAuthDomainCheckToken(t *testing.T) {
 	ctx := context.TODO()
-	logger := logrus.New()
+	logger := slog.Default()
 	_, deps := testutil.GetTestConfigurationAndDependencies(t, ctx, logger)
 	domain := domains.NewAuthDomain(deps)
 
@@ -64,7 +64,7 @@ func TestAuthDomainCheckToken(t *testing.T) {
 
 func TestAuthDomainCheckTokenInvalidMethod(t *testing.T) {
 	ctx := context.TODO()
-	logger := logrus.New()
+	logger := slog.Default()
 	_, deps := testutil.GetTestConfigurationAndDependencies(t, ctx, logger)
 	domain := domains.NewAuthDomain(deps)
 
@@ -87,7 +87,7 @@ func TestAuthDomainCheckTokenInvalidMethod(t *testing.T) {
 
 func TestAuthDomainGetAccountFromCredentials(t *testing.T) {
 	ctx := context.TODO()
-	logger := logrus.New()
+	logger := slog.Default()
 	_, deps := testutil.GetTestConfigurationAndDependencies(t, ctx, logger)
 	domain := domains.NewAuthDomain(deps)
 

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"os"
 	"strings"
 
 	"github.com/go-shiori/shiori/internal/config"
@@ -82,15 +83,17 @@ func newServerCommandHandler() func(cmd *cobra.Command, args []string) {
 			cfg.Http.SecretKey = secretKey
 		})
 
-		dependencies.Logger().Infof("Starting Shiori v%s", model.BuildVersion)
+		dependencies.Logger().Info("starting shiori", "version", model.BuildVersion)
 
 		server, err := http.NewHttpServer(dependencies.Logger()).Setup(cfg, dependencies)
 		if err != nil {
-			dependencies.Logger().WithError(err).Fatal("error setting up server")
+			dependencies.Logger().Error("error setting up server", "error", err)
+			os.Exit(1)
 		}
 
 		if err := server.Start(ctx); err != nil {
-			dependencies.Logger().WithError(err).Fatal("error starting server")
+			dependencies.Logger().Error("error starting server", "error", err)
+			os.Exit(1)
 		}
 		dependencies.Logger().Debug("started http server")
 

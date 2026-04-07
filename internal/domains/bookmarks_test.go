@@ -8,7 +8,7 @@ import (
 	"github.com/go-shiori/shiori/internal/domains"
 	"github.com/go-shiori/shiori/internal/model"
 	"github.com/go-shiori/shiori/internal/testutil"
-	"github.com/sirupsen/logrus"
+	"log/slog"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -17,7 +17,7 @@ import (
 func TestBookmarkDomain(t *testing.T) {
 	fs := afero.NewMemMapFs()
 	ctx := context.Background()
-	logger := logrus.New()
+	logger := slog.Default()
 	_, deps := testutil.GetTestConfigurationAndDependencies(t, ctx, logger)
 
 	deps.Domains().SetStorage(domains.NewStorageDomain(deps, fs))
@@ -146,7 +146,7 @@ func TestBookmarkDomain(t *testing.T) {
 		// Create a new test environment for this specific test
 		fs := afero.NewMemMapFs()
 		ctx := context.Background()
-		logger := logrus.New()
+		logger := slog.Default()
 		_, deps := testutil.GetTestConfigurationAndDependencies(t, ctx, logger)
 		deps.Domains().SetStorage(domains.NewStorageDomain(deps, fs))
 
@@ -210,7 +210,7 @@ func TestBookmarkDomain(t *testing.T) {
 
 func TestBookmarksDomain_BulkUpdateBookmarkTags(t *testing.T) {
 	ctx := context.Background()
-	logger := logrus.New()
+	logger := slog.Default()
 	_, deps := testutil.GetTestConfigurationAndDependencies(t, ctx, logger)
 
 	domain := domains.NewBookmarksDomain(deps)
