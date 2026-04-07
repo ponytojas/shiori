@@ -2,13 +2,14 @@ package core
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
 	"image/jpeg"
 	"io"
-	"log"
+	"log/slog"
 	"math"
 	"net/url"
 	"os"
@@ -20,7 +21,6 @@ import (
 	"github.com/go-shiori/go-readability"
 	"github.com/go-shiori/shiori/internal/model"
 	"github.com/go-shiori/warc"
-	"github.com/pkg/errors"
 	_ "golang.org/x/image/webp"
 
 	// Add support for png
@@ -29,16 +29,18 @@ import (
 
 // ProcessRequest is the request for processing bookmark.
 type ProcessRequest struct {
-	DataDir     string
-	Bookmark    model.BookmarkDTO
-	Content     io.Reader
-	ContentType string
-	KeepTitle   bool
-	KeepExcerpt bool
-	LogArchival bool
+	DataDir       string
+	Bookmark      model.BookmarkDTO
+	Content       io.Reader
+	ContentType   string
+	KeepTitle     bool
+	KeepExcerpt   bool
+	LogArchival   bool
+	CreateArchive bool
+	CreateEbook   bool
 }
 
-var ErrNoSupportedImageType = errors.New("unsupported image type")
+var ErrNoSupportedImageType = fmt.Errorf("unsupported image type")
 
 // ProcessBookmark process the bookmark and archive it if needed.
 // Return three values, is error fatal, and error value.
@@ -126,13 +128,13 @@ func ProcessBookmark(deps model.Dependencies, req ProcessRequest) (book model.Bo
 	for i, imageURL := range imageURLs {
 		err = DownloadBookImage(deps, imageURL, imgPath)
 		if err != nil && errors.Is(err, ErrNoSupportedImageType) {
-			log.Printf("%s: %s", err, imageURL)
+			slog.Warn("unsupported image type", "error", err, "url", imageURL)
 			if i == len(imageURLs)-1 {
 				deps.Domains().Storage().FS().Remove(imgPath)
 			}
 		}
 		if err != nil {
-			log.Printf("File download not successful for image URL: %s", imageURL)
+			slog.Warn("file download not successful for image URL", "url", imageURL)
 			continue
 		}
 		if err == nil {
@@ -143,16 +145,16 @@ func ProcessBookmark(deps model.Dependencies, req ProcessRequest) (book model.Bo
 	}
 
 	// If needed, create ebook as well
-	if book.CreateEbook {
+	if req.CreateEbook {
 		ebookPath := model.GetEbookPath(&book)
 		req.Bookmark = book
 
 		if strings.Contains(contentType, "application/pdf") {
-			return book, false, errors.Wrap(err, "can't create ebook from pdf")
+			return book, false, fmt.Errorf("can't create ebook from pdf: %w", err)
 		} else {
 			_, err = GenerateEbook(deps, req, ebookPath)
 			if err != nil {
-				return book, true, errors.Wrap(err, "failed to create ebook")
+				return book, true, fmt.Errorf("failed to create ebook: %w", err)
 			}
 			book.HasEbook = true
 			book.ModifiedAt = ""
@@ -160,7 +162,7 @@ func ProcessBookmark(deps model.Dependencies, req ProcessRequest) (book model.Bo
 	}
 
 	// If needed, create offline archive as well
-	if book.CreateArchive {
+	if req.CreateArchive {
 		tmpFile, err := os.CreateTemp("", "archive")
 		if err != nil {
 			return book, false, fmt.Errorf("failed to create temp archive: %v", err)

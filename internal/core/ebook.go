@@ -6,9 +6,10 @@ import (
 	"strconv"
 	"strings"
 
+	"fmt"
+
 	epub "github.com/go-shiori/go-epub"
 	"github.com/go-shiori/shiori/internal/model"
-	"github.com/pkg/errors"
 )
 
 // GenerateEbook receives a `ProcessRequest` and generates an ebook file in the destination path specified.
@@ -19,7 +20,7 @@ func GenerateEbook(deps model.Dependencies, req ProcessRequest, dstPath string) 
 
 	// Make sure bookmark ID is defined
 	if book.ID == 0 {
-		return book, errors.New("bookmark ID is not valid")
+		return book, fmt.Errorf("bookmark ID is not valid")
 	}
 
 	// Get current state of bookmark cheak archive and thumb
@@ -40,13 +41,13 @@ func GenerateEbook(deps model.Dependencies, req ProcessRequest, dstPath string) 
 	// we can't create ebook from PDF so we return error here if bookmark is a pdf
 	contentType := req.ContentType
 	if strings.Contains(contentType, "application/pdf") {
-		return book, errors.New("can't create ebook for pdf")
+		return book, fmt.Errorf("can't create ebook for pdf")
 	}
 
 	// Create temporary epub file
 	tmpFile, err := os.CreateTemp("", "ebook")
 	if err != nil {
-		return book, errors.Wrap(err, "can't create temporary EPUB file")
+		return book, fmt.Errorf("can't create temporary EPUB file: %w", err)
 	}
 	defer os.Remove(tmpFile.Name())
 
@@ -56,7 +57,7 @@ func GenerateEbook(deps model.Dependencies, req ProcessRequest, dstPath string) 
 	// Create ebook
 	ebook, err := epub.NewEpub(book.Title)
 	if err != nil {
-		return book, errors.Wrap(err, "can't create EPUB")
+		return book, fmt.Errorf("can't create EPUB: %w", err)
 	}
 
 	ebook.SetTitle(book.Title)
@@ -70,12 +71,12 @@ func GenerateEbook(deps model.Dependencies, req ProcessRequest, dstPath string) 
 	ebook.SetDescription(book.Excerpt)
 	_, err = ebook.AddSection(`<h1 style="text-align:center"> `+book.Title+` </h1>`+book.HTML+lastline, book.Title, "", "")
 	if err != nil {
-		return book, errors.Wrap(err, "can't add ebook Section")
+		return book, fmt.Errorf("can't add ebook Section: %w", err)
 	}
 	ebook.EmbedImages()
 	err = ebook.Write(tmpFile.Name())
 	if err != nil {
-		return book, errors.Wrap(err, "can't create ebook file")
+		return book, fmt.Errorf("can't create ebook file: %w", err)
 	}
 
 	defer tmpFile.Close()
@@ -83,7 +84,7 @@ func GenerateEbook(deps model.Dependencies, req ProcessRequest, dstPath string) 
 	// If everything go well we move ebook to dstPath
 	err = deps.Domains().Storage().WriteFile(dstPath, tmpFile)
 	if err != nil {
-		return book, errors.Wrap(err, "failed move ebook to destination")
+		return book, fmt.Errorf("failed move ebook to destination: %w", err)
 	}
 
 	book.HasEbook = true

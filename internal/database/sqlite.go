@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
+	"log/slog"
 	"runtime"
 	"strings"
 	"time"
@@ -12,8 +12,6 @@ import (
 	"github.com/go-shiori/shiori/internal/model"
 	"github.com/huandu/go-sqlbuilder"
 	"github.com/jmoiron/sqlx"
-	"github.com/pkg/errors"
-
 	"slices"
 
 	_ "modernc.org/sqlite"
@@ -278,11 +276,11 @@ func (db *SQLiteDatabase) SaveBookmarks(ctx context.Context, create bool, bookma
 		for _, book := range bookmarks {
 			// Check URL and title
 			if book.URL == "" {
-				return errors.New("URL must not be empty")
+				return fmt.Errorf("URL must not be empty")
 			}
 
 			if book.Title == "" {
-				return errors.New("title must not be empty")
+				return fmt.Errorf("title must not be empty")
 			}
 
 			// Set modified time
@@ -538,7 +536,7 @@ func (db *SQLiteDatabase) GetBookmarks(ctx context.Context, opts model.DBGetBook
 				book.Content = bookmarkContent.Content
 				book.HTML = bookmarkContent.HTML
 			} else {
-				log.Printf("not found content for bookmark %d, but it should be; check DB consistency", book.ID)
+				slog.Warn("content not found for bookmark, check DB consistency", "bookmark_id", book.ID)
 			}
 		}
 	}
@@ -809,6 +807,81 @@ func (db *SQLiteDatabase) GetBookmark(ctx context.Context, id int, url string) (
 	return book, true, nil
 }
 
+// GetBookmarksByIDs fetches multiple bookmarks by their IDs in a single query.
+func (db *SQLiteDatabase) GetBookmarksByIDs(ctx context.Context, ids []int) ([]model.BookmarkDTO, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	// Build query for bookmarks
+	query, args, err := sqlx.In(
+		`SELECT b.id, b.url, b.title, b.excerpt, b.author, b.public, b.modified_at,
+		        bc.content, bc.html, b.has_content, b.created_at
+		 FROM bookmark b
+		 LEFT JOIN bookmark_content bc ON bc.docid = b.id
+		 WHERE b.id IN (?)`, ids)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build query: %w", err)
+	}
+	query = db.ReaderDB().Rebind(query)
+
+	var bookmarks []model.BookmarkDTO
+	err = db.ReaderDB().SelectContext(ctx, &bookmarks, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get bookmarks: %w", err)
+	}
+
+	if len(bookmarks) == 0 {
+		return bookmarks, nil
+	}
+
+	// Fetch tags for all bookmarks in one query
+	bookmarkIDs := make([]int, len(bookmarks))
+	for i, b := range bookmarks {
+		bookmarkIDs[i] = b.ID
+	}
+
+	type bookmarkTag struct {
+		BookmarkID int    `db:"bookmark_id"`
+		TagID      int    `db:"id"`
+		TagName    string `db:"name"`
+	}
+
+	tagQuery, tagArgs, err := sqlx.In(
+		`SELECT bt.bookmark_id, t.id, t.name
+		 FROM tag t
+		 INNER JOIN bookmark_tag bt ON bt.tag_id = t.id
+		 WHERE bt.bookmark_id IN (?)`, bookmarkIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build tag query: %w", err)
+	}
+	tagQuery = db.ReaderDB().Rebind(tagQuery)
+
+	var tags []bookmarkTag
+	err = db.ReaderDB().SelectContext(ctx, &tags, tagQuery, tagArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get bookmark tags: %w", err)
+	}
+
+	// Map tags to bookmarks
+	tagMap := make(map[int][]model.TagDTO)
+	for _, t := range tags {
+		tagMap[t.BookmarkID] = append(tagMap[t.BookmarkID], model.TagDTO{
+			Tag: model.Tag{ID: t.TagID, Name: t.TagName},
+		})
+	}
+
+	for i := range bookmarks {
+		if t, ok := tagMap[bookmarks[i].ID]; ok {
+			bookmarks[i].Tags = t
+		} else {
+			bookmarks[i].Tags = []model.TagDTO{}
+		}
+	}
+
+	return bookmarks, nil
+}
+
 // CreateAccount saves new account to database. Returns error if any happened.
 func (db *SQLiteDatabase) CreateAccount(ctx context.Context, account model.Account) (*model.Account, error) {
 	var accountID int64
@@ -822,7 +895,7 @@ func (db *SQLiteDatabase) CreateAccount(ctx context.Context, account model.Accou
 			return fmt.Errorf("error checking username existence: %w", err)
 		}
 		if exists {
-			return ErrAlreadyExists
+			return model.ErrAlreadyExists
 		}
 
 		// Insert new account
@@ -851,7 +924,7 @@ func (db *SQLiteDatabase) CreateAccount(ctx context.Context, account model.Accou
 // UpdateAccount updates account in database.
 func (db *SQLiteDatabase) UpdateAccount(ctx context.Context, account model.Account) error {
 	if account.ID == 0 {
-		return ErrNotFound
+		return model.ErrNotFound
 	}
 
 	if err := db.withTx(ctx, func(tx *sqlx.Tx) error {
@@ -864,7 +937,7 @@ func (db *SQLiteDatabase) UpdateAccount(ctx context.Context, account model.Accou
 			return fmt.Errorf("error checking username existence: %w", err)
 		}
 		if exists {
-			return ErrAlreadyExists
+			return model.ErrAlreadyExists
 		}
 
 		result, err := tx.ExecContext(ctx, `UPDATE account
@@ -880,7 +953,7 @@ func (db *SQLiteDatabase) UpdateAccount(ctx context.Context, account model.Accou
 			return fmt.Errorf("error getting rows affected: %w", err)
 		}
 		if rows == 0 {
-			return ErrNotFound
+			return model.ErrNotFound
 		}
 
 		return nil
@@ -936,7 +1009,7 @@ func (db *SQLiteDatabase) GetAccount(ctx context.Context, id model.DBID) (*model
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return &account, false, ErrNotFound
+			return &account, false, model.ErrNotFound
 		}
 		return &account, false, fmt.Errorf("error getting account: %w", err)
 	}
@@ -958,7 +1031,7 @@ func (db *SQLiteDatabase) DeleteAccount(ctx context.Context, id model.DBID) erro
 		}
 
 		if rows == 0 {
-			return ErrNotFound
+			return model.ErrNotFound
 		}
 
 		return nil
@@ -1105,7 +1178,7 @@ func (db *SQLiteDatabase) DeleteTag(ctx context.Context, id int) error {
 		return fmt.Errorf("failed to check if tag exists: %w", err)
 	}
 	if !exists {
-		return ErrNotFound
+		return model.ErrNotFound
 	}
 
 	// Delete all bookmark_tag associations
@@ -1156,11 +1229,11 @@ func (db *SQLiteDatabase) SaveBookmark(ctx context.Context, bookmark model.Bookm
 
 	// Check URL and title
 	if bookmark.URL == "" {
-		return errors.New("URL must not be empty")
+		return fmt.Errorf("URL must not be empty")
 	}
 
 	if bookmark.Title == "" {
-		return errors.New("title must not be empty")
+		return fmt.Errorf("title must not be empty")
 	}
 
 	// Use sqlbuilder to build the update query

@@ -4,11 +4,12 @@ import (
 	"net/http"
 	"time"
 
+	"fmt"
+
 	"github.com/go-shiori/shiori/internal/model"
 	"github.com/go-shiori/shiori/internal/webserver"
 	"github.com/gofrs/uuid/v5"
 	"github.com/julienschmidt/httprouter"
-	"github.com/pkg/errors"
 )
 
 type LegacyHandler struct {
@@ -46,7 +47,7 @@ func (h *LegacyHandler) convertParams(r *http.Request) httprouter.Params {
 func (h *LegacyHandler) HandleLogin(account *model.AccountDTO, expTime time.Duration) (string, error) {
 	sessionID, err := uuid.NewV4()
 	if err != nil {
-		return "", errors.Wrap(err, "failed to create session ID")
+		return "", fmt.Errorf("failed to create session ID: %w", err)
 	}
 
 	strSessionID := sessionID.String()
