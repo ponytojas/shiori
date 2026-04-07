@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/go-shiori/shiori/internal/database"
 	"github.com/go-shiori/shiori/internal/dependencies"
 	"github.com/go-shiori/shiori/internal/model"
 	"golang.org/x/crypto/bcrypt"
@@ -69,7 +68,7 @@ func (d *AccountsDomain) CreateAccount(ctx context.Context, account model.Accoun
 	}
 
 	storedAccount, err := d.deps.Database().CreateAccount(ctx, acc)
-	if errors.Is(err, database.ErrAlreadyExists) {
+	if errors.Is(err, model.ErrAlreadyExists) {
 		return nil, model.ErrAlreadyExists
 	}
 
@@ -84,7 +83,7 @@ func (d *AccountsDomain) CreateAccount(ctx context.Context, account model.Accoun
 
 func (d *AccountsDomain) DeleteAccount(ctx context.Context, id int) error {
 	err := d.deps.Database().DeleteAccount(ctx, model.DBID(id))
-	if errors.Is(err, database.ErrNotFound) {
+	if errors.Is(err, model.ErrNotFound) {
 		return model.ErrNotFound
 	}
 
@@ -102,7 +101,7 @@ func (d *AccountsDomain) UpdateAccount(ctx context.Context, account model.Accoun
 
 	// Get account from database
 	storedAccount, _, err := d.deps.Database().GetAccount(ctx, account.ID)
-	if errors.Is(err, database.ErrNotFound) {
+	if errors.Is(err, model.ErrNotFound) {
 		return nil, model.ErrNotFound
 	}
 	if err != nil {
@@ -132,7 +131,7 @@ func (d *AccountsDomain) UpdateAccount(ctx context.Context, account model.Accoun
 
 	// Save updated account
 	err = d.deps.Database().UpdateAccount(ctx, *storedAccount)
-	if errors.Is(err, database.ErrAlreadyExists) {
+	if errors.Is(err, model.ErrAlreadyExists) {
 		return nil, model.ErrAlreadyExists
 	}
 

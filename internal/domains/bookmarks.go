@@ -45,21 +45,20 @@ func (d *BookmarksDomain) GetBookmark(ctx context.Context, id model.DBID) (*mode
 }
 
 func (d *BookmarksDomain) GetBookmarks(ctx context.Context, ids []int) ([]model.BookmarkDTO, error) {
-	var bookmarks []model.BookmarkDTO
-	for _, id := range ids {
-		bookmark, exists, err := d.deps.Database().GetBookmark(ctx, id, "")
-		if err != nil {
-			return nil, fmt.Errorf("failed to get bookmark %d: %w", id, err)
-		}
-		if !exists {
-			continue
-		}
-
-		// Check if it has ebook and archive
-		bookmark.HasEbook = d.HasEbook(&bookmark)
-		bookmark.HasArchive = d.HasArchive(&bookmark)
-		bookmarks = append(bookmarks, bookmark)
+	if len(ids) == 0 {
+		return nil, nil
 	}
+
+	bookmarks, err := d.deps.Database().GetBookmarksByIDs(ctx, ids)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get bookmarks: %w", err)
+	}
+
+	for i := range bookmarks {
+		bookmarks[i].HasEbook = d.HasEbook(&bookmarks[i])
+		bookmarks[i].HasArchive = d.HasArchive(&bookmarks[i])
+	}
+
 	return bookmarks, nil
 }
 
@@ -71,23 +70,28 @@ func (d *BookmarksDomain) UpdateBookmarkCache(ctx context.Context, bookmark mode
 	}
 	defer content.Close()
 
+	createEbook := bookmark.CreateEbook
+	createArchive := bookmark.CreateArchive
+
 	// Check if we should skip existing ebook
-	if skipExist && bookmark.CreateEbook {
+	if skipExist && createEbook {
 		ebookPath := model.GetEbookPath(&bookmark)
 		if d.deps.Domains().Storage().FileExists(ebookPath) {
-			bookmark.CreateEbook = false
+			createEbook = false
 			bookmark.HasEbook = true
 		}
 	}
 
 	// Process the bookmark
 	request := core.ProcessRequest{
-		DataDir:     d.deps.Config().Storage.DataDir,
-		Bookmark:    bookmark,
-		Content:     content,
-		ContentType: contentType,
-		KeepTitle:   keepMetadata,
-		KeepExcerpt: keepMetadata,
+		DataDir:       d.deps.Config().Storage.DataDir,
+		Bookmark:      bookmark,
+		Content:       content,
+		ContentType:   contentType,
+		KeepTitle:     keepMetadata,
+		KeepExcerpt:   keepMetadata,
+		CreateArchive: createArchive,
+		CreateEbook:   createEbook,
 	}
 
 	processedBookmark, _, err := core.ProcessBookmark(d.deps, request)

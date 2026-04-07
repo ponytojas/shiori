@@ -50,6 +50,9 @@ type DB interface {
 	// GetBookmark fetches bookmark based on its ID or URL.
 	GetBookmark(ctx context.Context, id int, url string) (BookmarkDTO, bool, error)
 
+	// GetBookmarksByIDs fetches multiple bookmarks by their IDs in a single query.
+	GetBookmarksByIDs(ctx context.Context, ids []int) ([]BookmarkDTO, error)
+
 	// CreateAccount saves new account in database
 	CreateAccount(ctx context.Context, a Account) (*Account, error)
 

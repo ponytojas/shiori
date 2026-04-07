@@ -92,13 +92,15 @@ func addHandler(cmd *cobra.Command, args []string) {
 
 		if err == nil && content != nil {
 			request := core.ProcessRequest{
-				DataDir:     cfg.Storage.DataDir,
-				Bookmark:    book,
-				Content:     content,
-				ContentType: contentType,
-				LogArchival: logArchival,
-				KeepTitle:   title != "",
-				KeepExcerpt: excerpt != "",
+				DataDir:       cfg.Storage.DataDir,
+				Bookmark:      book,
+				Content:       content,
+				ContentType:   contentType,
+				LogArchival:   logArchival,
+				KeepTitle:     title != "",
+				KeepExcerpt:   excerpt != "",
+				CreateArchive: book.CreateArchive,
+				CreateEbook:   book.CreateEbook,
 			}
 
 			book, isFatalErr, err = core.ProcessBookmark(deps, request)

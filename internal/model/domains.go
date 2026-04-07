@@ -38,8 +38,8 @@ type AccountsDomain interface {
 }
 
 type ArchiverDomain interface {
-	DownloadBookmarkArchive(book BookmarkDTO) (*BookmarkDTO, error)
-	GetBookmarkArchive(book *BookmarkDTO) (*warc.Archive, error)
+	DownloadBookmarkArchive(ctx context.Context, book BookmarkDTO) (*BookmarkDTO, error)
+	GetBookmarkArchive(ctx context.Context, book *BookmarkDTO) (*warc.Archive, error)
 }
 
 type StorageDomain interface {

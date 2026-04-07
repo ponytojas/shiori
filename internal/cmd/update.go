@@ -165,13 +165,15 @@ func updateHandler(cmd *cobra.Command, args []string) {
 				}
 
 				request := core.ProcessRequest{
-					DataDir:     cfg.Storage.DataDir,
-					Bookmark:    book,
-					Content:     content,
-					ContentType: contentType,
-					KeepTitle:   keep_metadata,
-					KeepExcerpt: keep_metadata,
-					LogArchival: logArchival,
+					DataDir:       cfg.Storage.DataDir,
+					Bookmark:      book,
+					Content:       content,
+					ContentType:   contentType,
+					KeepTitle:     keep_metadata,
+					KeepExcerpt:   keep_metadata,
+					LogArchival:   logArchival,
+					CreateArchive: book.CreateArchive,
+					CreateEbook:   book.CreateEbook,
 				}
 
 				book, _, err = core.ProcessBookmark(deps, request)

@@ -1,6 +1,7 @@
 package domains
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 
@@ -14,7 +15,7 @@ type ArchiverDomain struct {
 	deps *dependencies.Dependencies
 }
 
-func (d *ArchiverDomain) DownloadBookmarkArchive(book model.BookmarkDTO) (*model.BookmarkDTO, error) {
+func (d *ArchiverDomain) DownloadBookmarkArchive(ctx context.Context, book model.BookmarkDTO) (*model.BookmarkDTO, error) {
 	content, contentType, err := core.DownloadBookmark(book.URL)
 	if err != nil {
 		return nil, fmt.Errorf("error downloading url: %s", err)
@@ -37,7 +38,7 @@ func (d *ArchiverDomain) DownloadBookmarkArchive(book model.BookmarkDTO) (*model
 	return &result, nil
 }
 
-func (d *ArchiverDomain) GetBookmarkArchive(book *model.BookmarkDTO) (*warc.Archive, error) {
+func (d *ArchiverDomain) GetBookmarkArchive(ctx context.Context, book *model.BookmarkDTO) (*warc.Archive, error) {
 	archivePath := model.GetArchivePath(book)
 
 	if !d.deps.Domains().Storage().FileExists(archivePath) {
