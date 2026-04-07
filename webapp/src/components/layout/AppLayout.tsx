@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 const links = [
   { to: '/inbox', label: 'Inbox' },
   { to: '/archive', label: 'Archive' },
+  { to: '/maintenance', label: 'Maintenance' },
 ]
 
 function normalizeUrl(raw: string): string | null {
@@ -178,8 +179,8 @@ export function AppLayout({ children }: PropsWithChildren) {
             <span
               className="absolute bottom-1.5 top-1.5 rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.12)] ring-1 ring-[#E8D8C8] transition-all duration-300 ease-out"
               style={{
-                width: 'calc(50% - 6px)',
-                left: activeTabIndex <= 0 ? '6px' : 'calc(50% + 1px)',
+                width: `calc(${100 / links.length}% - 6px)`,
+                left: activeTabIndex <= 0 ? '6px' : `calc(${(100 / links.length) * activeTabIndex}% + 1px)`,
               }}
               aria-hidden="true"
             />

@@ -369,6 +369,46 @@ export async function unarchiveBookmark(bookmark: ModelBookmarkDTO): Promise<Mod
   return updateBookmark(bookmark, tags, 'Failed to restore bookmark')
 }
 
+export async function listAllBookmarks(): Promise<ModelBookmarkDTO[]> {
+  const all: ModelBookmarkDTO[] = []
+  let page = 1
+
+  while (true) {
+    const response = await listBookmarks({ page })
+    all.push(...response.bookmarks)
+
+    if (page >= response.maxPage) break
+    page++
+  }
+
+  return all
+}
+
+export interface UpdateBookmarksCacheInput {
+  ids: number[]
+  keepMetadata: boolean
+  createArchive: boolean
+  createEbook: boolean
+  skipExist: boolean
+}
+
+export async function updateBookmarksCache(input: UpdateBookmarksCacheInput): Promise<ModelBookmarkDTO[]> {
+  const response = await fetch(createApiUrl('/api/v1/bookmarks/cache'), {
+    method: 'PUT',
+    credentials: 'include',
+    headers: createRequestHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({
+      ids: input.ids,
+      keep_metadata: input.keepMetadata,
+      create_archive: input.createArchive,
+      create_ebook: input.createEbook,
+      skip_exist: input.skipExist,
+    }),
+  })
+
+  return readApiResponse<ModelBookmarkDTO[]>(response, 'Failed to update bookmarks cache')
+}
+
 export async function removeArchiveTag(bookmarkId: number, tagId: number): Promise<void> {
   const res = await fetch(createApiUrl(`/api/v1/bookmarks/${bookmarkId}/tags`), {
     method: 'DELETE',

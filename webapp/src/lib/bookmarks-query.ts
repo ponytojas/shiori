@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { ModelBookmarkDTO } from '@/client'
-import { archiveBookmark, createBookmark, deleteBookmark, listBookmarks, tagsApi, toggleBookmarkTagByName, unarchiveBookmark, uploadPdfBookmark } from '@/lib/api'
+import { archiveBookmark, createBookmark, deleteBookmark, listBookmarks, tagsApi, toggleBookmarkTagByName, unarchiveBookmark, updateBookmarksCache, uploadPdfBookmark } from '@/lib/api'
+import type { UpdateBookmarksCacheInput } from '@/lib/api'
 
 export const bookmarkKeys = {
   all: ['bookmarks'] as const,
@@ -113,6 +114,18 @@ export function useUnarchiveBookmarkMutation() {
 
   return useMutation({
     mutationFn: (bookmark: ModelBookmarkDTO) => unarchiveBookmark(bookmark),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: bookmarkKeys.all })
+      await queryClient.invalidateQueries({ queryKey: bookmarkKeys.tags })
+    },
+  })
+}
+
+export function useUpdateBookmarksCacheMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (input: UpdateBookmarksCacheInput) => updateBookmarksCache(input),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: bookmarkKeys.all })
       await queryClient.invalidateQueries({ queryKey: bookmarkKeys.tags })
