@@ -547,13 +547,13 @@ func testDeleteAccount(t *testing.T, db model.DB) {
 
 	_, exists, err := db.GetAccount(ctx, storedAccount.ID)
 	assert.False(t, exists, "Account must not exist")
-	assert.ErrorIs(t, err, ErrNotFound, "Get account must return not found error")
+	assert.ErrorIs(t, err, model.ErrNotFound, "Get account must return not found error")
 }
 
 func testDeleteNonExistantAccount(t *testing.T, db model.DB) {
 	ctx := context.TODO()
 	err := db.DeleteAccount(ctx, model.DBID(99))
-	assert.ErrorIs(t, err, ErrNotFound, "Delete account must fail")
+	assert.ErrorIs(t, err, model.ErrNotFound, "Delete account must fail")
 }
 
 func testUpdateAccount(t *testing.T, db model.DB) {
@@ -623,7 +623,7 @@ func testGetAccount(t *testing.T, db model.DB) {
 
 	// Failed case
 	account, exists, err := db.GetAccount(ctx, 99)
-	assert.ErrorIs(t, err, ErrNotFound)
+	assert.ErrorIs(t, err, model.ErrNotFound)
 	assert.False(t, exists, "Expected account to exist")
 	assert.Empty(t, account.Username)
 }
@@ -680,7 +680,7 @@ func testCreateDuplicateAccount(t *testing.T, db model.DB) {
 
 	// Try to create account with same username
 	_, err = db.CreateAccount(ctx, acc)
-	assert.ErrorIs(t, err, ErrAlreadyExists, "Creating duplicate account must return ErrAlreadyExists")
+	assert.ErrorIs(t, err, model.ErrAlreadyExists, "Creating duplicate account must return model.ErrAlreadyExists")
 }
 
 func testUpdateAccountDuplicateUser(t *testing.T, db model.DB) {
@@ -707,7 +707,7 @@ func testUpdateAccountDuplicateUser(t *testing.T, db model.DB) {
 	// Try to update second account to have same username as first
 	storedAcc2.Username = storedAcc1.Username
 	err = db.UpdateAccount(ctx, *storedAcc2)
-	assert.ErrorIs(t, err, ErrAlreadyExists, "Updating to duplicate username must return ErrAlreadyExists")
+	assert.ErrorIs(t, err, model.ErrAlreadyExists, "Updating to duplicate username must return model.ErrAlreadyExists")
 }
 
 func testListAccountsWithPassword(t *testing.T, db model.DB) {
@@ -952,7 +952,7 @@ func testDeleteTagNotExistent(t *testing.T, db model.DB) {
 	// Test deleting a non-existent tag
 	err := db.DeleteTag(ctx, 9999)
 	require.Error(t, err)
-	assert.ErrorIs(t, err, ErrNotFound, "Error should be ErrNotFound")
+	assert.ErrorIs(t, err, model.ErrNotFound, "Error should be model.ErrNotFound")
 }
 
 func testSaveBookmark(t *testing.T, db model.DB) {

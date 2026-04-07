@@ -8,12 +8,12 @@ import (
 
 	"github.com/go-shiori/shiori/internal/model"
 	"github.com/go-shiori/shiori/internal/testutil"
-	"github.com/sirupsen/logrus"
+	"log/slog"
 	"github.com/stretchr/testify/require"
 )
 
 func TestAccountDomainsListAccounts(t *testing.T) {
-	logger := logrus.New()
+	logger := slog.Default()
 	_, deps := testutil.GetTestConfigurationAndDependencies(t, context.TODO(), logger)
 
 	t.Run("empty", func(t *testing.T) {
@@ -39,7 +39,7 @@ func TestAccountDomainsListAccounts(t *testing.T) {
 }
 
 func TestAccountDomainsGetAccountByUsername(t *testing.T) {
-	logger := logrus.New()
+	logger := slog.Default()
 	_, deps := testutil.GetTestConfigurationAndDependencies(t, context.TODO(), logger)
 
 	t.Run("empty", func(t *testing.T) {
@@ -63,7 +63,7 @@ func TestAccountDomainsGetAccountByUsername(t *testing.T) {
 }
 
 func TestAccountDomainCreateAccount(t *testing.T) {
-	logger := logrus.New()
+	logger := slog.Default()
 	_, deps := testutil.GetTestConfigurationAndDependencies(t, context.TODO(), logger)
 
 	t.Run("create account", func(t *testing.T) {
@@ -103,7 +103,7 @@ func TestAccountDomainCreateAccount(t *testing.T) {
 }
 
 func TestAccountDomainUpdateAccount(t *testing.T) {
-	logger := logrus.New()
+	logger := slog.Default()
 	_, deps := testutil.GetTestConfigurationAndDependencies(t, context.TODO(), logger)
 
 	t.Run("update account", func(t *testing.T) {
@@ -154,7 +154,7 @@ func TestAccountDomainUpdateAccount(t *testing.T) {
 }
 
 func TestAccountDomainDeleteAccount(t *testing.T) {
-	logger := logrus.New()
+	logger := slog.Default()
 	_, deps := testutil.GetTestConfigurationAndDependencies(t, context.TODO(), logger)
 
 	t.Run("delete account", func(t *testing.T) {

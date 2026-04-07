@@ -2,16 +2,16 @@ package cmd
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	fp "path/filepath"
-	"time"
+	"strings"
 
 	"github.com/go-shiori/shiori/internal/config"
 	"github.com/go-shiori/shiori/internal/database"
 	"github.com/go-shiori/shiori/internal/dependencies"
 	"github.com/go-shiori/shiori/internal/domains"
 	"github.com/go-shiori/shiori/internal/model"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
@@ -28,8 +28,8 @@ func ShioriCmd() *cobra.Command {
 	rootCmd.PersistentFlags().String("storage-directory", "", "path to store shiori data")
 	rootCmd.MarkFlagsMutuallyExclusive("portable", "storage-directory")
 
-	rootCmd.PersistentFlags().String("log-level", logrus.InfoLevel.String(), "set logrus loglevel")
-	rootCmd.PersistentFlags().Bool("log-caller", false, "logrus report caller or not")
+	rootCmd.PersistentFlags().String("log-level", "info", "set log level")
+	rootCmd.PersistentFlags().Bool("log-caller", false, "report caller in log output")
 
 	rootCmd.AddCommand(
 		addCmd(),
@@ -51,28 +51,31 @@ func ShioriCmd() *cobra.Command {
 }
 
 func initShiori(ctx context.Context, cmd *cobra.Command) (*config.Config, *dependencies.Dependencies) {
-	logger := logrus.New()
-
 	portableMode, _ := cmd.Flags().GetBool("portable")
-	logLevel, _ := cmd.Flags().GetString("log-level")
+	logLevelStr, _ := cmd.Flags().GetString("log-level")
 	logCaller, _ := cmd.Flags().GetBool("log-caller")
 	storageDirectory, _ := cmd.Flags().GetString("storage-directory")
 
-	logger.SetReportCaller(logCaller)
-	logger.SetFormatter(&logrus.TextFormatter{
-		FullTimestamp:    true,
-		TimestampFormat:  time.RFC3339,
-		CallerPrettyfier: SFCallerPrettyfier,
-	})
-
-	if lvl, err := logrus.ParseLevel(logLevel); err != nil {
-		logger.WithError(err).Panic("failed to set log level")
-	} else {
-		logger.SetLevel(lvl)
+	var logLevel slog.Level
+	switch strings.ToLower(logLevelStr) {
+	case "debug":
+		logLevel = slog.LevelDebug
+	case "warn", "warning":
+		logLevel = slog.LevelWarn
+	case "error":
+		logLevel = slog.LevelError
+	default:
+		logLevel = slog.LevelInfo
 	}
 
+	opts := &slog.HandlerOptions{
+		Level:     logLevel,
+		AddSource: logCaller,
+	}
+	logger := slog.New(slog.NewTextHandler(os.Stderr, opts))
+
 	cfg := config.ParseServerConfiguration(ctx, logger)
-	cfg.LogLevel = logger.Level.String()
+	cfg.LogLevel = logLevelStr
 
 	if storageDirectory != "" {
 		logger.Warn("--storage-directory is set, overriding SHIORI_DIR.")
@@ -82,22 +85,26 @@ func initShiori(ctx context.Context, cmd *cobra.Command) (*config.Config, *depen
 	cfg.SetDefaults(logger, portableMode)
 
 	if err := cfg.IsValid(); err != nil {
-		logger.WithError(err).Fatal("invalid configuration detected")
+		logger.Error("invalid configuration detected", "error", err)
+		os.Exit(1)
 	}
 
 	err := os.MkdirAll(cfg.Storage.DataDir, model.DataDirPerm)
 	if err != nil {
-		logger.WithError(err).Fatal("error creating data directory")
+		logger.Error("error creating data directory", "error", err)
+		os.Exit(1)
 	}
 
 	db, err := openDatabase(logger, ctx, cfg)
 	if err != nil {
-		logger.WithError(err).Fatal("error opening database")
+		logger.Error("error opening database", "error", err)
+		os.Exit(1)
 	}
 
 	// Migrate
 	if err := db.Migrate(ctx); err != nil {
-		logger.WithError(err).Fatalf("Error running migration")
+		logger.Error("error running migration", "error", err)
+		os.Exit(1)
 	}
 
 	if cfg.Development {
@@ -129,7 +136,8 @@ func initShiori(ctx context.Context, cmd *cobra.Command) (*config.Config, *depen
 		}
 
 		if _, err := dependencies.Domains().Accounts().CreateAccount(cmd.Context(), account); err != nil {
-			logger.WithError(err).Fatal("error ensuring owner account")
+			logger.Error("error ensuring owner account", "error", err)
+			os.Exit(1)
 		}
 	}
 
@@ -138,13 +146,13 @@ func initShiori(ctx context.Context, cmd *cobra.Command) (*config.Config, *depen
 	return cfg, dependencies
 }
 
-func openDatabase(logger *logrus.Logger, ctx context.Context, cfg *config.Config) (model.DB, error) {
+func openDatabase(logger *slog.Logger, ctx context.Context, cfg *config.Config) (model.DB, error) {
 	if cfg.Database.URL != "" {
 		return database.Connect(ctx, cfg.Database.URL)
 	}
 
 	if cfg.Database.DBMS != "" {
-		logger.Warnf("The use of SHIORI_DBMS is deprecated and will be removed in the future. Please migrate to SHIORI_DATABASE_URL instead.")
+		logger.Warn("The use of SHIORI_DBMS is deprecated and will be removed in the future. Please migrate to SHIORI_DATABASE_URL instead.")
 	}
 
 	// TODO remove this the moment DBMS is deprecated

@@ -25,7 +25,7 @@ func GetLegacyHandler(cfg Config, dependencies model.Dependencies) *Handler {
 	for i, ip := range plainIPs {
 		_, ipNet, err := net.ParseCIDR(ip)
 		if err != nil {
-			dependencies.Logger().WithError(err).WithField("ip", ip).Error("Failed to parse trusted ip cidr")
+			dependencies.Logger().Error("failed to parse trusted ip cidr", "error", err, "ip", ip)
 			continue
 		}
 

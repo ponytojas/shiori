@@ -9,12 +9,12 @@ import (
 	"github.com/go-shiori/shiori/internal/http/webcontext"
 	"github.com/go-shiori/shiori/internal/model"
 	"github.com/go-shiori/shiori/internal/testutil"
-	"github.com/sirupsen/logrus"
+	"log/slog"
 	"github.com/stretchr/testify/require"
 )
 
 func TestAuthMiddlewareWithSSO(t *testing.T) {
-	logger := logrus.New()
+	logger := slog.Default()
 	_, deps := testutil.GetTestConfigurationAndDependencies(t, context.TODO(), logger)
 	deps.Config().Http.SSOProxyAuth = true
 

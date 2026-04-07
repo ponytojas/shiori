@@ -1,19 +1,20 @@
 package dependencies
 
 import (
+	"log/slog"
+
 	"github.com/go-shiori/shiori/internal/config"
 	"github.com/go-shiori/shiori/internal/model"
-	"github.com/sirupsen/logrus"
 )
 
 type Dependencies struct {
-	log      *logrus.Logger
+	log      *slog.Logger
 	domains  *domains
 	config   *config.Config
 	database model.DB
 }
 
-func (d *Dependencies) Logger() *logrus.Logger {
+func (d *Dependencies) Logger() *slog.Logger {
 	return d.log
 }
 
@@ -53,7 +54,7 @@ func (d *domains) SetTags(tags model.TagsDomain)                { d.tags = tags 
 
 var _ model.DomainDependencies = (*domains)(nil)
 
-func NewDependencies(log *logrus.Logger, db model.DB, cfg *config.Config) *Dependencies {
+func NewDependencies(log *slog.Logger, db model.DB, cfg *config.Config) *Dependencies {
 	return &Dependencies{
 		log:      log,
 		config:   cfg,

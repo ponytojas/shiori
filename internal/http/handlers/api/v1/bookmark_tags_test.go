@@ -10,7 +10,7 @@ import (
 	api_v1 "github.com/go-shiori/shiori/internal/http/handlers/api/v1"
 	"github.com/go-shiori/shiori/internal/model"
 	"github.com/go-shiori/shiori/internal/testutil"
-	"github.com/sirupsen/logrus"
+	"log/slog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -22,7 +22,7 @@ type bookmarkTagPayload struct {
 
 func TestBookmarkTagsAPI(t *testing.T) {
 	ctx := context.Background()
-	logger := logrus.New()
+	logger := slog.Default()
 
 	// Setup using the test configuration and dependencies
 	_, deps := testutil.GetTestConfigurationAndDependencies(t, ctx, logger)

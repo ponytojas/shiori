@@ -25,7 +25,7 @@ func HandleFrontend(deps model.Dependencies, c model.WebContext) {
 	}
 
 	if err := response.SendTemplate(c, "index.html", data); err != nil {
-		deps.Logger().WithError(err).Error("failed to render template")
+		deps.Logger().Error("failed to render template", "error", err)
 	}
 }
 

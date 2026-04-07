@@ -1,9 +1,11 @@
 package main
 
 import (
+	"log/slog"
+	"os"
+
 	"github.com/go-shiori/shiori/internal/cmd"
 	"github.com/go-shiori/shiori/internal/model"
-	"github.com/sirupsen/logrus"
 
 	// Add this to prevent it removed by go mod tidy
 	_ "github.com/shurcooL/vfsgen"
@@ -25,6 +27,7 @@ func init() {
 func main() {
 	err := cmd.ShioriCmd().Execute()
 	if err != nil {
-		logrus.Fatalln(err)
+		slog.Error("command failed", "error", err)
+		os.Exit(1)
 	}
 }

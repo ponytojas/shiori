@@ -10,12 +10,12 @@ import (
 	"github.com/go-shiori/shiori/internal/http/webcontext"
 	"github.com/go-shiori/shiori/internal/model"
 	"github.com/go-shiori/shiori/internal/testutil"
-	"github.com/sirupsen/logrus"
+	"log/slog"
 	"github.com/stretchr/testify/require"
 )
 
 func TestAuthMiddleware(t *testing.T) {
-	logger := logrus.New()
+	logger := slog.Default()
 	_, deps := testutil.GetTestConfigurationAndDependencies(t, context.TODO(), logger)
 
 	t.Run("test no authorization method", func(t *testing.T) {
@@ -100,7 +100,7 @@ func TestAuthMiddleware(t *testing.T) {
 }
 
 func TestAllowHeaderOnlyShortcutAuth(t *testing.T) {
-	logger := logrus.New()
+	logger := slog.Default()
 	cfg, deps := testutil.GetTestConfigurationAndDependencies(t, context.TODO(), logger)
 
 	t.Run("disabled flag returns false", func(t *testing.T) {
@@ -136,7 +136,7 @@ func TestAllowHeaderOnlyShortcutAuth(t *testing.T) {
 }
 
 func TestRequireLoggedInUser(t *testing.T) {
-	logger := logrus.New()
+	logger := slog.Default()
 	_, deps := testutil.GetTestConfigurationAndDependencies(t, context.TODO(), logger)
 
 	t.Run("returns error when user not logged in", func(t *testing.T) {
@@ -165,7 +165,7 @@ func TestRequireLoggedInUser(t *testing.T) {
 }
 
 func TestRequireLoggedInAdmin(t *testing.T) {
-	logger := logrus.New()
+	logger := slog.Default()
 	_, deps := testutil.GetTestConfigurationAndDependencies(t, context.TODO(), logger)
 
 	t.Run("returns error when user not logged in", func(t *testing.T) {

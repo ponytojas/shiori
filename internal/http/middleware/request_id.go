@@ -25,7 +25,7 @@ func (m *RequestIDMiddleware) OnRequest(deps model.Dependencies, c model.WebCont
 	// Generate request ID
 	requestID, err := uuid.NewV4()
 	if err != nil {
-		deps.Logger().WithError(err).Error("Failed to generate request ID")
+		deps.Logger().Error("failed to generate request ID", "error", err)
 		return err
 	}
 

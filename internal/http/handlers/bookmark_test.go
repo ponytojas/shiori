@@ -9,12 +9,12 @@ import (
 	"github.com/go-shiori/shiori/internal/http/templates"
 	"github.com/go-shiori/shiori/internal/model"
 	"github.com/go-shiori/shiori/internal/testutil"
-	"github.com/sirupsen/logrus"
+	"log/slog"
 	"github.com/stretchr/testify/require"
 )
 
 func TestGetBookmark(t *testing.T) {
-	logger := logrus.New()
+	logger := slog.Default()
 	_, deps := testutil.GetTestConfigurationAndDependencies(t, context.TODO(), logger)
 
 	err := templates.SetupTemplates(deps.Config())
@@ -72,7 +72,7 @@ func TestGetBookmark(t *testing.T) {
 }
 
 func TestBookmarkContentHandler(t *testing.T) {
-	logger := logrus.New()
+	logger := slog.Default()
 	_, deps := testutil.GetTestConfigurationAndDependencies(t, context.Background(), logger)
 
 	err := templates.SetupTemplates(deps.Config())
@@ -102,7 +102,7 @@ func TestBookmarkContentHandler(t *testing.T) {
 }
 
 func TestBookmarkFileHandlers(t *testing.T) {
-	logger := logrus.New()
+	logger := slog.Default()
 	_, deps := testutil.GetTestConfigurationAndDependencies(t, context.Background(), logger)
 
 	err := templates.SetupTemplates(deps.Config())
@@ -116,7 +116,7 @@ func TestBookmarkFileHandlers(t *testing.T) {
 	bookmarks, err := deps.Database().SaveBookmarks(context.TODO(), true, *bookmark)
 	require.NoError(t, err)
 
-	bookmark, err = deps.Domains().Archiver().DownloadBookmarkArchive(bookmarks[0])
+	bookmark, err = deps.Domains().Archiver().DownloadBookmarkArchive(context.TODO(), bookmarks[0])
 	require.NoError(t, err)
 
 	bookmarks, err = deps.Database().SaveBookmarks(context.TODO(), false, *bookmark)

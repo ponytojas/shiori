@@ -11,7 +11,7 @@ import (
 	"github.com/go-shiori/shiori/internal/http/response"
 	"github.com/go-shiori/shiori/internal/model"
 	"github.com/go-shiori/shiori/internal/testutil"
-	"github.com/sirupsen/logrus"
+	"log/slog"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/require"
 )
@@ -21,7 +21,7 @@ func newMockStorage(deps model.Dependencies, fs afero.Fs) model.StorageDomain {
 }
 
 func TestSendFile(t *testing.T) {
-	logger := logrus.New()
+	logger := slog.Default()
 	_, deps := testutil.GetTestConfigurationAndDependencies(t, context.TODO(), logger)
 
 	storage := newMockStorage(deps, afero.NewMemMapFs())

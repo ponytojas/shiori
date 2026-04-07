@@ -9,7 +9,6 @@ import (
 
 	"github.com/go-shiori/shiori/internal/model"
 	cch "github.com/patrickmn/go-cache"
-	"github.com/sirupsen/logrus"
 )
 
 // Handler is Handler for serving the web interface.
@@ -54,7 +53,7 @@ func (h *Handler) validateSession(r *http.Request) error {
 	if h.dependencies.Config().Http.SSOProxyAuth {
 		account, err = h.ssoAccount(r)
 		if err != nil {
-			h.dependencies.Logger().WithError(err).Error("getting sso account")
+			h.dependencies.Logger().Error("getting sso account", "error", err)
 		}
 	}
 
@@ -69,11 +68,11 @@ func (h *Handler) validateSession(r *http.Request) error {
 		return fmt.Errorf("account level is not sufficient")
 	}
 
-	h.dependencies.Logger().WithFields(logrus.Fields{
-		"username": account.Username,
-		"method":   r.Method,
-		"path":     r.URL.Path,
-	}).Info("allowing legacy api access using JWT token")
+	h.dependencies.Logger().Info("allowing legacy api access using JWT token",
+		"username", account.Username,
+		"method", r.Method,
+		"path", r.URL.Path,
+	)
 
 	return nil
 

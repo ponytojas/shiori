@@ -3,10 +3,12 @@ package http
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/go-shiori/shiori/internal/config"
 	"github.com/go-shiori/shiori/internal/dependencies"
@@ -15,13 +17,12 @@ import (
 	"github.com/go-shiori/shiori/internal/http/middleware"
 	"github.com/go-shiori/shiori/internal/http/templates"
 	"github.com/go-shiori/shiori/internal/model"
-	"github.com/sirupsen/logrus"
 )
 
 type HttpServer struct {
 	mux    *http.ServeMux
 	server *http.Server
-	logger *logrus.Logger
+	logger *slog.Logger
 }
 
 func (s *HttpServer) Setup(cfg *config.Config, deps *dependencies.Dependencies) (*HttpServer, error) {
@@ -206,33 +207,37 @@ func (s *HttpServer) Setup(cfg *config.Config, deps *dependencies.Dependencies) 
 }
 
 func (s *HttpServer) Start(_ context.Context) error {
-	s.logger.WithField("addr", s.server.Addr).Info("starting http server")
+	s.logger.Info("starting http server", "addr", s.server.Addr)
 	go func() {
 		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			s.logger.Fatalf("listen and serve error: %s\n", err)
+			s.logger.Error("listen and serve error", "error", err)
+				os.Exit(1)
 		}
 	}()
 	return nil
 }
 
 func (s *HttpServer) Stop(ctx context.Context) error {
-	s.logger.WithField("addr", s.server.Addr).Info("stopping http server")
+	s.logger.Info("stopping http server", "addr", s.server.Addr)
 	return s.server.Shutdown(ctx)
 }
 
-func (s *HttpServer) WaitStop(ctx context.Context) {
+func (s *HttpServer) WaitStop(_ context.Context) {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
 
 	sig := <-signals
-	s.logger.WithField("signal", sig.String()).Info("signal received, shutting down")
+	s.logger.Info("signal received, shutting down", "signal", sig.String())
 
-	if err := s.Stop(ctx); err != nil {
-		s.logger.WithError(err).Error("error stopping server")
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := s.Stop(shutdownCtx); err != nil {
+		s.logger.Error("error stopping server", "error", err)
 	}
 }
 
-func NewHttpServer(logger *logrus.Logger) *HttpServer {
+func NewHttpServer(logger *slog.Logger) *HttpServer {
 	return &HttpServer{
 		logger: logger,
 	}

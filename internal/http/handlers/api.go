@@ -1,14 +1,14 @@
 package handlers
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/go-shiori/shiori/internal/dependencies"
-	"github.com/sirupsen/logrus"
 )
 
 type APIHandler struct {
-	logger *logrus.Logger
+	logger *slog.Logger
 	deps   *dependencies.Dependencies
 }
 
@@ -31,7 +31,7 @@ func (h *APIHandler) handlePost(w http.ResponseWriter, r *http.Request) {
 	// Implementation
 }
 
-func NewAPIHandler(logger *logrus.Logger, deps *dependencies.Dependencies) *APIHandler {
+func NewAPIHandler(logger *slog.Logger, deps *dependencies.Dependencies) *APIHandler {
 	return &APIHandler{
 		logger: logger,
 		deps:   deps,

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"math"
 	"net/http"
 	"os"
@@ -26,12 +26,14 @@ func downloadBookmarkContent(deps model.Dependencies, book *model.BookmarkDTO, d
 	}
 
 	processRequest := core.ProcessRequest{
-		DataDir:     dataDir,
-		Bookmark:    *book,
-		Content:     content,
-		ContentType: contentType,
-		KeepTitle:   keepTitle,
-		KeepExcerpt: keepExcerpt,
+		DataDir:       dataDir,
+		Bookmark:      *book,
+		Content:       content,
+		ContentType:   contentType,
+		KeepTitle:     keepTitle,
+		KeepExcerpt:   keepExcerpt,
+		CreateArchive: book.CreateArchive,
+		CreateEbook:   book.CreateEbook,
 	}
 
 	result, isFatalErr, err := core.ProcessBookmark(deps, processRequest)
@@ -235,11 +237,11 @@ func (h *Handler) ApiInsertBookmark(w http.ResponseWriter, r *http.Request, ps h
 		go func() {
 			bookmark, err := downloadBookmarkContent(h.dependencies, book, h.DataDir, r, userHasDefinedTitle, book.Excerpt != "")
 			if err != nil {
-				log.Printf("error downloading boorkmark: %s", err)
+				slog.Error("error downloading bookmark", "error", err)
 				return
 			}
 			if _, err := h.DB.SaveBookmarks(context.Background(), false, *bookmark); err != nil {
-				log.Printf("failed to save bookmark: %s", err)
+				slog.Error("failed to save bookmark", "error", err)
 			}
 		}()
 	} else {
@@ -247,9 +249,9 @@ func (h *Handler) ApiInsertBookmark(w http.ResponseWriter, r *http.Request, ps h
 		// id already set in the object regardless of the database engine.
 		book, err = downloadBookmarkContent(h.dependencies, book, h.DataDir, r, userHasDefinedTitle, book.Excerpt != "")
 		if err != nil {
-			log.Printf("error downloading boorkmark: %s", err)
+			slog.Error("error downloading bookmark", "error", err)
 		} else if _, err := h.DB.SaveBookmarks(ctx, false, *book); err != nil {
-			log.Printf("failed to save bookmark: %s", err)
+			slog.Error("failed to save bookmark", "error", err)
 		}
 	}
 

@@ -22,7 +22,7 @@ func NewAuthSSOProxyMiddleware(deps model.Dependencies) *AuthSSOProxyMiddleware 
 	for i, ip := range plainIPs {
 		_, ipNet, err := net.ParseCIDR(ip)
 		if err != nil {
-			deps.Logger().WithError(err).WithField("ip", ip).Error("Failed to parse trusted ip cidr")
+			deps.Logger().Error("failed to parse trusted ip cidr", "error", err, "ip", ip)
 			continue
 		}
 
@@ -42,11 +42,11 @@ func (m *AuthSSOProxyMiddleware) OnRequest(deps model.Dependencies, c model.WebC
 
 	account, err := m.ssoAccount(deps, c)
 	if err != nil {
-		deps.Logger().
-			WithError(err).
-			WithField("remote_addr", c.Request().RemoteAddr).
-			WithField("request_id", c.GetRequestID()).
-			Error("getting sso account")
+		deps.Logger().Error("getting sso account",
+			"error", err,
+			"remote_addr", c.Request().RemoteAddr,
+			"request_id", c.GetRequestID(),
+		)
 		return nil
 	}
 	if account != nil {

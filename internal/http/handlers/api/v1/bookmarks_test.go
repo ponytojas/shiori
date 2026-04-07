@@ -3,7 +3,6 @@ package api_v1
 import (
 	"context"
 	"encoding/json"
-	"io"
 	"net/http"
 	"strconv"
 	"testing"
@@ -11,12 +10,12 @@ import (
 
 	"github.com/go-shiori/shiori/internal/model"
 	"github.com/go-shiori/shiori/internal/testutil"
-	"github.com/sirupsen/logrus"
+	"log/slog"
 	"github.com/stretchr/testify/require"
 )
 
 func TestHandleBookmarkReadable(t *testing.T) {
-	logger := logrus.New()
+	logger := slog.Default()
 	ctx := context.Background()
 
 	t.Run("requires authentication", func(t *testing.T) {
@@ -90,7 +89,7 @@ func TestHandleBookmarkReadable(t *testing.T) {
 }
 
 func TestHandleCreateShortcutBookmark(t *testing.T) {
-	logger := logrus.New()
+	logger := slog.Default()
 	ctx := context.Background()
 
 	payload := createShortcutBookmarkPayload{
@@ -166,7 +165,7 @@ func TestHandleCreateShortcutBookmark(t *testing.T) {
 }
 
 func TestHandleUpdateCache(t *testing.T) {
-	logger := logrus.New()
+	logger := slog.Default()
 	ctx := context.Background()
 
 	t.Run("requires authentication", func(t *testing.T) {
@@ -276,8 +275,7 @@ func TestHandleUpdateCache(t *testing.T) {
 
 func TestHandleUpdateBookmarkTags(t *testing.T) {
 	ctx := context.Background()
-	logger := logrus.New()
-	logger.SetOutput(io.Discard)
+	logger := slog.Default()
 
 	t.Run("requires_authentication", func(t *testing.T) {
 		_, deps := testutil.GetTestConfigurationAndDependencies(t, ctx, logger)

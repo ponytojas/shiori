@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/go-shiori/shiori/internal/model"
-	"github.com/sirupsen/logrus"
 )
 
 var _ model.HttpMiddleware = &LoggingMiddleware{}
@@ -21,11 +20,11 @@ func (m *LoggingMiddleware) OnRequest(deps model.Dependencies, c model.WebContex
 
 func (m *LoggingMiddleware) OnResponse(deps model.Dependencies, c model.WebContext) error {
 	duration := time.Since(m.startTime)
-	deps.Logger().WithFields(logrus.Fields{
-		"path":       c.Request().URL.Path,
-		"duration":   duration,
-		"request_id": c.GetRequestID(),
-	}).Info("request completed")
+	deps.Logger().Info("request completed",
+		"path", c.Request().URL.Path,
+		"duration", duration,
+		"request_id", c.GetRequestID(),
+	)
 	return nil
 }
 

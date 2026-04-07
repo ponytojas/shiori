@@ -11,7 +11,6 @@ import (
 	"github.com/go-shiori/shiori/internal/model"
 	"github.com/huandu/go-sqlbuilder"
 	"github.com/jmoiron/sqlx"
-	"github.com/pkg/errors"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -81,7 +80,7 @@ func OpenMySQLDatabase(ctx context.Context, connString string) (mysqlDB *MySQLDa
 	// Open database and start transaction
 	db, err := sqlx.ConnectContext(ctx, "mysql", connString)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 
 	db.SetMaxOpenConns(100)
@@ -99,7 +98,7 @@ func (db *MySQLDatabase) Init(ctx context.Context) error {
 // Migrate runs migrations for this database engine
 func (db *MySQLDatabase) Migrate(ctx context.Context) error {
 	if err := runMigrations(ctx, db, mysqlMigrations); err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 
 	return nil
@@ -111,7 +110,7 @@ func (db *MySQLDatabase) GetDatabaseSchemaVersion(ctx context.Context) (string, 
 
 	err := db.GetContext(ctx, &version, "SELECT database_schema_version FROM shiori_system")
 	if err != nil {
-		return "", errors.WithStack(err)
+		return "", err
 	}
 
 	return version, nil
@@ -124,7 +123,7 @@ func (db *MySQLDatabase) SetDatabaseSchemaVersion(ctx context.Context, version s
 
 	_, err := tx.Exec("UPDATE shiori_system SET database_schema_version = ?", version)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 
 	return tx.Commit()
@@ -141,7 +140,7 @@ func (db *MySQLDatabase) SaveBookmarks(ctx context.Context, create bool, bookmar
 			(url, title, excerpt, author, public, content, html, modified_at, created_at)
 			VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`)
 		if err != nil {
-			return errors.WithStack(err)
+			return err
 		}
 
 		stmtUpdateBook, err := tx.Preparex(`UPDATE bookmark
@@ -155,29 +154,29 @@ func (db *MySQLDatabase) SaveBookmarks(ctx context.Context, create bool, bookmar
 			modified_at = ?
 		WHERE id = ?`)
 		if err != nil {
-			return errors.WithStack(err)
+			return err
 		}
 
 		stmtGetTag, err := tx.Preparex(`SELECT id FROM tag WHERE name = ?`)
 		if err != nil {
-			return errors.WithStack(err)
+			return err
 		}
 
 		stmtInsertTag, err := tx.Preparex(`INSERT INTO tag (name) VALUES (?)`)
 		if err != nil {
-			return errors.WithStack(err)
+			return err
 		}
 
 		stmtInsertBookTag, err := tx.Preparex(`INSERT IGNORE INTO bookmark_tag
 			(tag_id, bookmark_id) VALUES (?, ?)`)
 		if err != nil {
-			return errors.WithStack(err)
+			return err
 		}
 
 		stmtDeleteBookTag, err := tx.Preparex(`DELETE FROM bookmark_tag
 			WHERE bookmark_id = ? AND tag_id = ?`)
 		if err != nil {
-			return errors.WithStack(err)
+			return err
 		}
 
 		// Prepare modified time
@@ -188,11 +187,11 @@ func (db *MySQLDatabase) SaveBookmarks(ctx context.Context, create bool, bookmar
 		for _, book := range bookmarks {
 			// Check URL and title
 			if book.URL == "" {
-				return errors.New("URL must not be empty")
+				return fmt.Errorf("URL must not be empty")
 			}
 
 			if book.Title == "" {
-				return errors.New("title must not be empty")
+				return fmt.Errorf("title must not be empty")
 			}
 
 			// Set modified time
@@ -209,11 +208,11 @@ func (db *MySQLDatabase) SaveBookmarks(ctx context.Context, create bool, bookmar
 					book.URL, book.Title, book.Excerpt, book.Author,
 					book.Public, book.Content, book.HTML, book.ModifiedAt, book.CreatedAt)
 				if err != nil {
-					return errors.WithStack(err)
+					return err
 				}
 				bookID, err := res.LastInsertId()
 				if err != nil {
-					return errors.WithStack(err)
+					return err
 				}
 				book.ID = int(bookID)
 			} else {
@@ -222,7 +221,7 @@ func (db *MySQLDatabase) SaveBookmarks(ctx context.Context, create bool, bookmar
 					book.Public, book.Content, book.HTML, book.ModifiedAt, book.ID)
 			}
 			if err != nil {
-				return errors.WithStack(err)
+				return err
 			}
 
 			// Save book tags
@@ -233,7 +232,7 @@ func (db *MySQLDatabase) SaveBookmarks(ctx context.Context, create bool, bookmar
 				if t.Deleted {
 					_, err = stmtDeleteBookTag.ExecContext(ctx, book.ID, t.ID)
 					if err != nil {
-						return errors.WithStack(err)
+						return err
 					}
 
 					continue
@@ -246,19 +245,19 @@ func (db *MySQLDatabase) SaveBookmarks(ctx context.Context, create bool, bookmar
 				// If tag doesn't have any ID, fetch it from database
 				if tag.ID == 0 {
 					if err := stmtGetTag.GetContext(ctx, &tag.ID, tagName); err != nil && err != sql.ErrNoRows {
-						return errors.WithStack(err)
+						return err
 					}
 
 					// If tag doesn't exist in database, save it
 					if tag.ID == 0 {
 						res, err := stmtInsertTag.ExecContext(ctx, tagName)
 						if err != nil {
-							return errors.WithStack(err)
+							return err
 						}
 
 						tagID64, err := res.LastInsertId()
 						if err != nil {
-							return errors.WithStack(err)
+							return err
 						}
 
 						tag.ID = int(tagID64)
@@ -268,7 +267,7 @@ func (db *MySQLDatabase) SaveBookmarks(ctx context.Context, create bool, bookmar
 
 				// Always insert the tag-bookmark association
 				if _, err := stmtInsertBookTag.ExecContext(ctx, tag.ID, book.ID); err != nil {
-					return errors.WithStack(err)
+					return err
 				}
 
 				newTags = append(newTags, t)
@@ -280,7 +279,7 @@ func (db *MySQLDatabase) SaveBookmarks(ctx context.Context, create bool, bookmar
 
 		return nil
 	}); err != nil {
-		return result, errors.WithStack(err)
+		return result, err
 	}
 
 	return result, nil
@@ -390,14 +389,14 @@ func (db *MySQLDatabase) GetBookmarks(ctx context.Context, opts model.DBGetBookm
 	// Expand query, because some of the args might be an array
 	query, args, err := sqlx.In(query, args...)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 
 	// Fetch bookmarks
 	bookmarks := []model.BookmarkDTO{}
 	err = db.Select(&bookmarks, query, args...)
 	if err != nil && err != sql.ErrNoRows {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 
 	// Fetch tags for each bookmark
@@ -507,14 +506,14 @@ func (db *MySQLDatabase) GetBookmarksCount(ctx context.Context, opts model.DBGet
 	// Expand query, because some of the args might be an array
 	query, args, err := sqlx.In(query, args...)
 	if err != nil {
-		return 0, errors.WithStack(err)
+		return 0, err
 	}
 
 	// Fetch count
 	var nBookmarks int
 	err = db.GetContext(ctx, &nBookmarks, query, args...)
 	if err != nil && err != sql.ErrNoRows {
-		return 0, errors.WithStack(err)
+		return 0, err
 	}
 
 	return nBookmarks, nil
@@ -531,12 +530,12 @@ func (db *MySQLDatabase) DeleteBookmarks(ctx context.Context, ids ...int) (err e
 		if len(ids) == 0 {
 			_, err := tx.ExecContext(ctx, delBookmarkTag)
 			if err != nil {
-				return errors.WithStack(err)
+				return err
 			}
 
 			_, err = tx.ExecContext(ctx, delBookmark)
 			if err != nil {
-				return errors.WithStack(err)
+				return err
 			}
 		} else {
 			delBookmark += ` WHERE id = ?`
@@ -548,19 +547,19 @@ func (db *MySQLDatabase) DeleteBookmarks(ctx context.Context, ids ...int) (err e
 			for _, id := range ids {
 				_, err := stmtDelBookmarkTag.ExecContext(ctx, id)
 				if err != nil {
-					return errors.WithStack(err)
+					return err
 				}
 
 				_, err = stmtDelBookmark.ExecContext(ctx, id)
 				if err != nil {
-					return errors.WithStack(err)
+					return err
 				}
 			}
 		}
 
 		return nil
 	}); err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 
 	return nil
@@ -622,6 +621,80 @@ func (db *MySQLDatabase) GetBookmark(ctx context.Context, id int, url string) (m
 	return book, true, nil
 }
 
+// GetBookmarksByIDs fetches multiple bookmarks by their IDs in a single query.
+func (db *MySQLDatabase) GetBookmarksByIDs(ctx context.Context, ids []int) ([]model.BookmarkDTO, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	// Build query for bookmarks
+	query, args, err := sqlx.In(
+		`SELECT id, url, title, excerpt, author, public, modified_at,
+		        content, html, has_content, created_at
+		 FROM bookmark
+		 WHERE id IN (?)`, ids)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build query: %w", err)
+	}
+	query = db.ReaderDB().Rebind(query)
+
+	var bookmarks []model.BookmarkDTO
+	err = db.ReaderDB().SelectContext(ctx, &bookmarks, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get bookmarks: %w", err)
+	}
+
+	if len(bookmarks) == 0 {
+		return bookmarks, nil
+	}
+
+	// Fetch tags for all bookmarks in one query
+	bookmarkIDs := make([]int, len(bookmarks))
+	for i, b := range bookmarks {
+		bookmarkIDs[i] = b.ID
+	}
+
+	type bookmarkTag struct {
+		BookmarkID int    `db:"bookmark_id"`
+		TagID      int    `db:"id"`
+		TagName    string `db:"name"`
+	}
+
+	tagQuery, tagArgs, err := sqlx.In(
+		`SELECT bt.bookmark_id, t.id, t.name
+		 FROM tag t
+		 INNER JOIN bookmark_tag bt ON bt.tag_id = t.id
+		 WHERE bt.bookmark_id IN (?)`, bookmarkIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build tag query: %w", err)
+	}
+	tagQuery = db.ReaderDB().Rebind(tagQuery)
+
+	var tags []bookmarkTag
+	err = db.ReaderDB().SelectContext(ctx, &tags, tagQuery, tagArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get bookmark tags: %w", err)
+	}
+
+	// Map tags to bookmarks
+	tagMap := make(map[int][]model.TagDTO)
+	for _, t := range tags {
+		tagMap[t.BookmarkID] = append(tagMap[t.BookmarkID], model.TagDTO{
+			Tag: model.Tag{ID: t.TagID, Name: t.TagName},
+		})
+	}
+
+	for i := range bookmarks {
+		if t, ok := tagMap[bookmarks[i].ID]; ok {
+			bookmarks[i].Tags = t
+		} else {
+			bookmarks[i].Tags = []model.TagDTO{}
+		}
+	}
+
+	return bookmarks, nil
+}
+
 // CreateAccount saves new account to database. Returns error if any happened.
 func (db *MySQLDatabase) CreateAccount(ctx context.Context, account model.Account) (*model.Account, error) {
 	var accountID int64
@@ -636,7 +709,7 @@ func (db *MySQLDatabase) CreateAccount(ctx context.Context, account model.Accoun
 			return fmt.Errorf("error checking username: %w", err)
 		}
 		if exists {
-			return ErrAlreadyExists
+			return model.ErrAlreadyExists
 		}
 
 		// Create the account
@@ -664,7 +737,7 @@ func (db *MySQLDatabase) CreateAccount(ctx context.Context, account model.Accoun
 // UpdateAccount update account in database
 func (db *MySQLDatabase) UpdateAccount(ctx context.Context, account model.Account) error {
 	if account.ID == 0 {
-		return ErrNotFound
+		return model.ErrNotFound
 	}
 
 	if err := db.withTx(ctx, func(tx *sqlx.Tx) error {
@@ -677,7 +750,7 @@ func (db *MySQLDatabase) UpdateAccount(ctx context.Context, account model.Accoun
 			return fmt.Errorf("error checking username: %w", err)
 		}
 		if exists {
-			return ErrAlreadyExists
+			return model.ErrAlreadyExists
 		}
 
 		result, err := tx.ExecContext(ctx, `UPDATE account
@@ -693,7 +766,7 @@ func (db *MySQLDatabase) UpdateAccount(ctx context.Context, account model.Accoun
 			return fmt.Errorf("error getting rows affected: %w", err)
 		}
 		if rows == 0 {
-			return ErrNotFound
+			return model.ErrNotFound
 		}
 
 		return nil
@@ -733,7 +806,7 @@ func (db *MySQLDatabase) ListAccounts(ctx context.Context, opts model.DBListAcco
 	accounts := []model.Account{}
 	err := db.SelectContext(ctx, &accounts, query, args...)
 	if err != nil && err != sql.ErrNoRows {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 
 	return accounts, nil
@@ -749,7 +822,7 @@ func (db *MySQLDatabase) GetAccount(ctx context.Context, id model.DBID) (*model.
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return &account, false, ErrNotFound
+			return &account, false, model.ErrNotFound
 		}
 		return &account, false, fmt.Errorf("error getting account: %w", err)
 	}
@@ -771,7 +844,7 @@ func (db *MySQLDatabase) DeleteAccount(ctx context.Context, id model.DBID) error
 		}
 
 		if rows == 0 {
-			return ErrNotFound
+			return model.ErrNotFound
 		}
 
 		return nil
@@ -918,7 +991,7 @@ func (db *MySQLDatabase) DeleteTag(ctx context.Context, id int) error {
 		return fmt.Errorf("failed to check if tag exists: %w", err)
 	}
 	if !exists {
-		return ErrNotFound
+		return model.ErrNotFound
 	}
 
 	// Delete all bookmark_tag associations
@@ -972,11 +1045,11 @@ func (db *MySQLDatabase) SaveBookmark(ctx context.Context, bookmark model.Bookma
 
 	// Check URL and title
 	if bookmark.URL == "" {
-		return errors.New("URL must not be empty")
+		return fmt.Errorf("URL must not be empty")
 	}
 
 	if bookmark.Title == "" {
-		return errors.New("title must not be empty")
+		return fmt.Errorf("title must not be empty")
 	}
 
 	// Use sqlbuilder to build the update query

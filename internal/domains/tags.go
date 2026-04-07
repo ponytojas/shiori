@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/go-shiori/shiori/internal/database"
 	"github.com/go-shiori/shiori/internal/model"
 )
 
@@ -50,7 +49,7 @@ func (d *tagsDomain) UpdateTag(ctx context.Context, tagDTO model.TagDTO) (model.
 	tag := tagDTO.ToTag()
 	err := d.deps.Database().UpdateTag(ctx, tag)
 	if err != nil {
-		if errors.Is(err, database.ErrNotFound) {
+		if errors.Is(err, model.ErrNotFound) {
 			return model.TagDTO{}, model.ErrNotFound
 		}
 		return model.TagDTO{}, err
@@ -67,7 +66,7 @@ func (d *tagsDomain) UpdateTag(ctx context.Context, tagDTO model.TagDTO) (model.
 
 func (d *tagsDomain) DeleteTag(ctx context.Context, id int) error {
 	if err := d.deps.Database().DeleteTag(ctx, id); err != nil {
-		if errors.Is(err, database.ErrNotFound) {
+		if errors.Is(err, model.ErrNotFound) {
 			return model.ErrNotFound
 		}
 		return err

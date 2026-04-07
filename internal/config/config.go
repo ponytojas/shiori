@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,11 +12,10 @@ import (
 
 	"github.com/gofrs/uuid/v5"
 	"github.com/sethvargo/go-envconfig"
-	"github.com/sirupsen/logrus"
 )
 
 // readDotEnv reads the configuration from variables in a .env file (only for contributing)
-func readDotEnv(logger *logrus.Logger) map[string]string {
+func readDotEnv(logger *slog.Logger) map[string]string {
 	result := make(map[string]string)
 
 	file, err := os.Open(".env")
@@ -34,7 +34,7 @@ func readDotEnv(logger *logrus.Logger) map[string]string {
 
 		keyval := strings.SplitN(line, "=", 2)
 		if len(keyval) != 2 {
-			logger.WithField("line", line).Warn("invalid line in .env file")
+			logger.Warn("invalid line in .env file", "line", line)
 			continue
 		}
 
@@ -42,7 +42,8 @@ func readDotEnv(logger *logrus.Logger) map[string]string {
 	}
 
 	if err := scanner.Err(); err != nil {
-		logger.WithError(err).Fatal("error reading dotenv")
+		logger.Error("error reading dotenv", "error", err)
+		os.Exit(1)
 	}
 
 	return result
@@ -79,13 +80,14 @@ type HttpConfig struct {
 }
 
 // SetDefaults sets the default values for the configuration
-func (c *HttpConfig) SetDefaults(logger *logrus.Logger) {
+func (c *HttpConfig) SetDefaults(logger *slog.Logger) {
 	// Set a random secret key if not set
 	if len(c.SecretKey) == 0 {
 		logger.Warn("SHIORI_HTTP_SECRET_KEY is not set, using random value. This means that all sessions will be invalidated on server restart.")
 		randomUUID, err := uuid.NewV4()
 		if err != nil {
-			logger.WithError(err).Fatal("couldn't generate a random UUID")
+			logger.Error("couldn't generate a random UUID", "error", err)
+			os.Exit(1)
 		}
 		c.SecretKey = []byte(randomUUID.String())
 	}
@@ -119,14 +121,15 @@ type Config struct {
 }
 
 // SetDefaults sets the default values for the configuration
-func (c Config) SetDefaults(logger *logrus.Logger, portableMode bool) {
+func (c Config) SetDefaults(logger *slog.Logger, portableMode bool) {
 	// Set the default storage directory if not set, setting also the database url for
 	// sqlite3 if that engine is used
 	if c.Storage.DataDir == "" {
 		var err error
 		c.Storage.DataDir, err = getStorageDirectory(portableMode)
 		if err != nil {
-			logger.WithError(err).Fatal("couldn't determine the data directory")
+			logger.Error("couldn't determine the data directory", "error", err)
+			os.Exit(1)
 		}
 	}
 
@@ -138,34 +141,35 @@ func (c Config) SetDefaults(logger *logrus.Logger, portableMode bool) {
 	c.Http.SetDefaults(logger)
 }
 
-func (c *Config) DebugConfiguration(logger *logrus.Logger) {
-	logger.Debug("Configuration:")
-	logger.Debugf(" SHIORI_HOSTNAME: %s", c.Hostname)
-	logger.Debugf(" SHIORI_DEVELOPMENT: %t", c.Development)
-	logger.Debugf(" SHIORI_DATABASE_URL: %s", c.Database.URL)
-	logger.Debugf(" SHIORI_DBMS: %s", c.Database.DBMS)
-	logger.Debugf(" SHIORI_DIR: %s", c.Storage.DataDir)
-	logger.Debugf(" SHIORI_HTTP_ENABLED: %t", c.Http.Enabled)
-	logger.Debugf(" SHIORI_HTTP_PORT: %d", c.Http.Port)
-	logger.Debugf(" SHIORI_HTTP_ADDRESS: %s", c.Http.Address)
-	logger.Debugf(" SHIORI_HTTP_ROOT_PATH: %s", c.Http.RootPath)
-	logger.Debugf(" SHIORI_HTTP_ACCESS_LOG: %t", c.Http.AccessLog)
-	logger.Debugf(" SHIORI_HTTP_SERVE_WEB_UI: %t", c.Http.ServeWebUI)
-	logger.Debugf(" SHIORI_HTTP_SECRET_KEY: %d characters", len(c.Http.SecretKey))
-	logger.Debugf(" SHIORI_HTTP_BODY_LIMIT: %d", c.Http.BodyLimit)
-	logger.Debugf(" SHIORI_HTTP_READ_TIMEOUT: %s", c.Http.ReadTimeout)
-	logger.Debugf(" SHIORI_HTTP_WRITE_TIMEOUT: %s", c.Http.WriteTimeout)
-	logger.Debugf(" SHIORI_HTTP_IDLE_TIMEOUT: %s", c.Http.IDLETimeout)
-	logger.Debugf(" SHIORI_HTTP_DISABLE_KEEP_ALIVE: %t", c.Http.DisableKeepAlive)
-	logger.Debugf(" SHIORI_HTTP_DISABLE_PARSE_MULTIPART_FORM: %t", c.Http.DisablePreParseMultipartForm)
-	logger.Debugf(" SHIORI_ADMIN_USER: %s", c.Http.AdminUser)
-	logger.Debugf(" SHIORI_ADMIN_PASS: %d characters", len(c.Http.AdminPass))
-	logger.Debugf(" SHIORI_CONTROL_HEADER_NAME: %s", c.Http.ControlHeaderName)
-	logger.Debugf(" SHIORI_CONTROL_HEADER_VALUE: %d characters", len(c.Http.ControlHeaderValue))
-	logger.Debugf(" SHIORI_SSO_PROXY_AUTH_ENABLED: %t", c.Http.SSOProxyAuth)
-	logger.Debugf(" SHIORI_SSO_PROXY_AUTH_HEADER_NAME: %s", c.Http.SSOProxyAuthHeaderName)
-	logger.Debugf(" SHIORI_SSO_PROXY_AUTH_TRUSTED: %v", c.Http.SSOProxyAuthTrusted)
-	logger.Debugf(" SHIORI_HTTP_ALLOW_HEADER_ONLY_SHORTCUT_AUTH: %t", c.Http.AllowHeaderOnlyShortcutAuth)
+func (c *Config) DebugConfiguration(logger *slog.Logger) {
+	logger.Debug("configuration",
+		"hostname", c.Hostname,
+		"development", c.Development,
+		"database_url", c.Database.URL,
+		"dbms", c.Database.DBMS,
+		"dir", c.Storage.DataDir,
+		"http_enabled", c.Http.Enabled,
+		"http_port", c.Http.Port,
+		"http_address", c.Http.Address,
+		"http_root_path", c.Http.RootPath,
+		"http_access_log", c.Http.AccessLog,
+		"http_serve_web_ui", c.Http.ServeWebUI,
+		"http_secret_key_len", len(c.Http.SecretKey),
+		"http_body_limit", c.Http.BodyLimit,
+		"http_read_timeout", c.Http.ReadTimeout,
+		"http_write_timeout", c.Http.WriteTimeout,
+		"http_idle_timeout", c.Http.IDLETimeout,
+		"http_disable_keep_alive", c.Http.DisableKeepAlive,
+		"http_disable_parse_multipart_form", c.Http.DisablePreParseMultipartForm,
+		"admin_user", c.Http.AdminUser,
+		"admin_pass_len", len(c.Http.AdminPass),
+		"control_header_name", c.Http.ControlHeaderName,
+		"control_header_value_len", len(c.Http.ControlHeaderValue),
+		"sso_proxy_auth_enabled", c.Http.SSOProxyAuth,
+		"sso_proxy_auth_header_name", c.Http.SSOProxyAuthHeaderName,
+		"sso_proxy_auth_trusted", c.Http.SSOProxyAuthTrusted,
+		"http_allow_header_only_shortcut_auth", c.Http.AllowHeaderOnlyShortcutAuth,
+	)
 }
 
 func (c *Config) IsValid() error {
@@ -177,7 +181,7 @@ func (c *Config) IsValid() error {
 }
 
 // ParseServerConfiguration parses the configuration from the enabled lookupers
-func ParseServerConfiguration(ctx context.Context, logger *logrus.Logger) *Config {
+func ParseServerConfiguration(ctx context.Context, logger *slog.Logger) *Config {
 	var cfg Config
 
 	lookupers := envconfig.MultiLookuper(
@@ -196,7 +200,8 @@ func ParseServerConfiguration(ctx context.Context, logger *logrus.Logger) *Confi
 		Target:   &cfg,
 		Lookuper: lookupers,
 	}); err != nil {
-		logger.WithError(err).Fatal("Error parsing configuration")
+		logger.Error("Error parsing configuration", "error", err)
+		os.Exit(1)
 	}
 
 	return &cfg

@@ -193,7 +193,7 @@ func HandleUpdateLoggedAccount(deps model.Dependencies, c model.WebContext) {
 
 	account, err := deps.Domains().Accounts().UpdateAccount(c.Request().Context(), updatedAccount)
 	if err != nil {
-		deps.Logger().WithError(err).Error("failed to update account")
+		deps.Logger().Error("failed to update account", "error", err)
 		response.SendInternalServerError(c)
 		return
 	}
@@ -213,10 +213,13 @@ func HandleLogout(deps model.Dependencies, c model.WebContext) {
 		return
 	}
 
-	// Remove token cookie
-	c.Request().AddCookie(&http.Cookie{
-		Name:  "token",
-		Value: "",
+	// Clear token cookie on the response
+	http.SetCookie(c.ResponseWriter(), &http.Cookie{
+		Name:     "token",
+		Value:    "",
+		MaxAge:   -1,
+		Path:     "/",
+		HttpOnly: true,
 	})
 
 	response.SendJSON(c, http.StatusOK, nil)

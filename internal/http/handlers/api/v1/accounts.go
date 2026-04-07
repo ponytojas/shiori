@@ -39,7 +39,7 @@ func HandleListAccounts(deps model.Dependencies, c model.WebContext) {
 
 	accounts, err := deps.Domains().Accounts().ListAccounts(c.Request().Context())
 	if err != nil {
-		deps.Logger().WithError(err).Error("error getting accounts")
+		deps.Logger().Error("error getting accounts", "error", err)
 		response.SendInternalServerError(c)
 		return
 	}
@@ -79,7 +79,7 @@ func HandleCreateAccount(deps model.Dependencies, c model.WebContext) {
 	}
 
 	if err != nil {
-		deps.Logger().WithError(err).Error("error creating account")
+		deps.Logger().Error("error creating account", "error", err)
 		response.SendInternalServerError(c)
 		return
 	}
@@ -114,7 +114,7 @@ func HandleDeleteAccount(deps model.Dependencies, c model.WebContext) {
 	}
 
 	if err != nil {
-		deps.Logger().WithError(err).Error("error deleting account")
+		deps.Logger().Error("error deleting account", "error", err)
 		response.SendInternalServerError(c)
 		return
 	}
@@ -169,7 +169,7 @@ func HandleUpdateAccount(deps model.Dependencies, c model.WebContext) {
 	}
 
 	if err != nil {
-		deps.Logger().WithError(err).Error("error updating account")
+		deps.Logger().Error("error updating account", "error", err)
 		response.SendInternalServerError(c)
 		return
 	}

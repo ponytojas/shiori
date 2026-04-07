@@ -66,7 +66,7 @@ func refreshInboxHandler(cmd *cobra.Command, args []string) {
 
 			refreshed, err := deps.Domains().Bookmarks().UpdateBookmarkCache(cmd.Context(), updated, false, true)
 			if err != nil {
-				deps.Logger().WithError(err).Warnf("failed to refresh metadata for bookmark %d", book.ID)
+				deps.Logger().Warn("failed to refresh metadata for bookmark", "error", err, "bookmark_id", book.ID)
 			} else {
 				updated = *refreshed
 			}

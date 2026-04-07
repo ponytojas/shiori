@@ -56,7 +56,7 @@ func HandleListTags(deps model.Dependencies, c model.WebContext) {
 
 	tags, err := deps.Domains().Tags().ListTags(c.Request().Context(), opts)
 	if err != nil {
-		deps.Logger().WithError(err).Error("failed to get tags")
+		deps.Logger().Error("failed to get tags", "error", err)
 		response.SendInternalServerError(c)
 		return
 	}
@@ -93,7 +93,7 @@ func HandleGetTag(deps model.Dependencies, c model.WebContext) {
 			response.NotFound(c)
 			return
 		}
-		deps.Logger().WithError(err).Error("failed to get tag")
+		deps.Logger().Error("failed to get tag", "error", err)
 		response.SendInternalServerError(c)
 		return
 	}
@@ -132,7 +132,7 @@ func HandleCreateTag(deps model.Dependencies, c model.WebContext) {
 
 	createdTag, err := deps.Domains().Tags().CreateTag(c.Request().Context(), tag)
 	if err != nil {
-		deps.Logger().WithError(err).Error("failed to create tag")
+		deps.Logger().Error("failed to create tag", "error", err)
 		response.SendInternalServerError(c)
 		return
 	}
@@ -187,7 +187,7 @@ func HandleUpdateTag(deps model.Dependencies, c model.WebContext) {
 			response.NotFound(c)
 			return
 		}
-		deps.Logger().WithError(err).Error("failed to update tag")
+		deps.Logger().Error("failed to update tag", "error", err)
 		response.SendInternalServerError(c)
 		return
 	}
@@ -223,7 +223,7 @@ func HandleDeleteTag(deps model.Dependencies, c model.WebContext) {
 			response.NotFound(c)
 			return
 		}
-		deps.Logger().WithError(err).Error("failed to delete tag")
+		deps.Logger().Error("failed to delete tag", "error", err)
 		response.SendInternalServerError(c)
 		return
 	}
