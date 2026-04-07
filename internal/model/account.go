@@ -32,11 +32,9 @@ type UserConfig struct {
 func (c *UserConfig) Scan(value interface{}) error {
 	switch v := value.(type) {
 	case []byte:
-		json.Unmarshal(v, &c)
-		return nil
+		return json.Unmarshal(v, c)
 	case string:
-		json.Unmarshal([]byte(v), &c)
-		return nil
+		return json.Unmarshal([]byte(v), c)
 	default:
 		return fmt.Errorf("unsupported type: %T", v)
 	}
@@ -63,7 +61,7 @@ func (a Account) ToDTO() AccountDTO {
 type AccountDTO struct {
 	ID       DBID        `json:"id"`
 	Username string      `json:"username"`
-	Password string      `json:"passowrd,omitempty"` // Used only to store, not to retrieve
+	Password string      `json:"password,omitempty"` // Used only to store, not to retrieve
 	Owner    *bool       `json:"owner"`
 	Config   *UserConfig `json:"config"`
 }

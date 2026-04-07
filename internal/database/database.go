@@ -4,27 +4,20 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/url"
 	"strings"
 
 	"github.com/go-shiori/shiori/internal/model"
 	"github.com/huandu/go-sqlbuilder"
 	"github.com/jmoiron/sqlx"
-	"github.com/pkg/errors"
 )
-
-// ErrNotFound is error returned when record is not found in database.
-var ErrNotFound = errors.New("not found")
-
-// ErrAlreadyExists is error returned when record already exists in database.
-var ErrAlreadyExists = errors.New("already exists")
 
 // Connect connects to database based on submitted database URL.
 func Connect(ctx context.Context, dbURL string) (model.DB, error) {
 	dbU, err := url.Parse(dbURL)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse database URL")
+		return nil, fmt.Errorf("failed to parse database URL: %w", err)
 	}
 
 	switch dbU.Scheme {
@@ -58,27 +51,29 @@ func (db *dbbase) WriterDB() *sqlx.DB {
 	return db.writer
 }
 
-func (db *dbbase) withTx(ctx context.Context, fn func(tx *sqlx.Tx) error) error {
+func (db *dbbase) withTx(ctx context.Context, fn func(tx *sqlx.Tx) error) (err error) {
 	tx, err := db.writer.BeginTxx(ctx, nil)
 	if err != nil {
-		return errors.WithStack(err)
+		return fmt.Errorf("begin transaction: %w", err)
 	}
 
 	defer func() {
-		if err := tx.Commit(); err != nil {
-			log.Printf("error during commit: %s", err)
+		if err != nil {
+			if rbErr := tx.Rollback(); rbErr != nil {
+				slog.Error("error during rollback", "error", rbErr)
+			}
 		}
 	}()
 
-	err = fn(tx)
-	if err != nil {
-		if err := tx.Rollback(); err != nil {
-			log.Printf("error during rollback: %s", err)
-		}
-		return errors.WithStack(err)
+	if err = fn(tx); err != nil {
+		return err
 	}
 
-	return err
+	if err = tx.Commit(); err != nil {
+		return fmt.Errorf("commit transaction: %w", err)
+	}
+
+	return nil
 }
 
 func (db *dbbase) GetContext(ctx context.Context, dest any, query string, args ...any) error {

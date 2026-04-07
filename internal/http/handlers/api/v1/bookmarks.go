@@ -10,14 +10,13 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/go-shiori/shiori/internal/database"
 	"github.com/go-shiori/shiori/internal/http/middleware"
 	"github.com/go-shiori/shiori/internal/http/response"
 	"github.com/go-shiori/shiori/internal/model"
 )
 
 type updateCachePayload struct {
-	Ids           []int `json:"ids"    validate:"required"`
+	Ids           []int `json:"ids"   `
 	KeepMetadata  bool  `json:"keep_metadata"`
 	CreateArchive bool  `json:"create_archive"`
 	CreateEbook   bool  `json:"create_ebook"`
@@ -42,7 +41,7 @@ type readableResponseMessage struct {
 }
 
 type createShortcutBookmarkPayload struct {
-	URL   string   `json:"url" validate:"required"`
+	URL   string   `json:"url"`
 	Title string   `json:"title"`
 	Tags  []string `json:"tags"`
 }
@@ -92,7 +91,7 @@ func HandleCreateShortcutBookmark(deps model.Dependencies, c model.WebContext) {
 
 	savedBookmarks, err := deps.Database().SaveBookmarks(c.Request().Context(), true, bookmark)
 	if err != nil {
-		if errors.Is(err, database.ErrAlreadyExists) {
+		if errors.Is(err, model.ErrAlreadyExists) {
 			response.SendError(c, http.StatusConflict, "Bookmark already exists")
 			return
 		}
@@ -114,7 +113,7 @@ func HandleCreateShortcutBookmark(deps model.Dependencies, c model.WebContext) {
 
 		tagDTO, err := deps.Domains().Tags().CreateTag(c.Request().Context(), model.TagDTO{Tag: model.Tag{Name: tagName}})
 		if err != nil {
-			if errors.Is(err, database.ErrAlreadyExists) {
+			if errors.Is(err, model.ErrAlreadyExists) {
 				tags, getErr := deps.Domains().Tags().ListTags(c.Request().Context(), model.ListTagsOptions{Search: tagName})
 				if getErr != nil {
 					response.SendError(c, http.StatusInternalServerError, "Failed to resolve tag")
@@ -222,8 +221,6 @@ func HandleUpdateCache(deps model.Dependencies, c model.WebContext) {
 	// Process bookmarks concurrently
 	mx := sync.RWMutex{}
 	wg := sync.WaitGroup{}
-	chDone := make(chan struct{})
-	chProblem := make(chan int, 10)
 	semaphore := make(chan struct{}, 10)
 
 	for i, book := range bookmarks {
@@ -240,8 +237,7 @@ func HandleUpdateCache(deps model.Dependencies, c model.WebContext) {
 			// Download and process bookmark
 			updatedBook, err := deps.Domains().Bookmarks().UpdateBookmarkCache(c.Request().Context(), book, payload.KeepMetadata, payload.SkipExist)
 			if err != nil {
-				deps.Logger().WithError(err).Error("error updating bookmark cache")
-				chProblem <- book.ID
+				deps.Logger().Error("error updating bookmark cache", "error", err)
 				return
 			}
 
@@ -251,28 +247,14 @@ func HandleUpdateCache(deps model.Dependencies, c model.WebContext) {
 		}(i, book)
 	}
 
-	// Collect problematic bookmarks
-	idWithProblems := []int{}
-	go func() {
-		for {
-			select {
-			case <-chDone:
-				return
-			case id := <-chProblem:
-				idWithProblems = append(idWithProblems, id)
-			}
-		}
-	}()
-
 	wg.Wait()
-	close(chDone)
 
 	response.SendJSON(c, http.StatusOK, bookmarks)
 }
 
 type bulkUpdateBookmarkTagsPayload struct {
-	BookmarkIDs []int `json:"bookmark_ids" validate:"required"`
-	TagIDs      []int `json:"tag_ids" validate:"required"`
+	BookmarkIDs []int `json:"bookmark_ids"`
+	TagIDs      []int `json:"tag_ids"`
 }
 
 func (p *bulkUpdateBookmarkTagsPayload) IsValid() error {
@@ -333,7 +315,7 @@ func HandleGetBookmarkTags(deps model.Dependencies, c model.WebContext) {
 
 // bookmarkTagPayload is used for both adding and removing tags from bookmarks
 type bookmarkTagPayload struct {
-	TagID int `json:"tag_id" validate:"required"`
+	TagID int `json:"tag_id"`
 }
 
 func (p *bookmarkTagPayload) IsValid() error {
