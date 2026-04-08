@@ -38,10 +38,14 @@ export function MaintenancePage() {
   }, [result])
 
   const missingTitles = allBookmarks.filter((b) => {
-    if (!b.url || !b.title) return false
-    const title = b.title.trim()
-    const url = b.url.trim()
-    return title === url || title === ''
+    const title = (b.title ?? '').trim()
+    const url = (b.url ?? '').trim()
+    if (!url) return false
+    if (!title) return true
+    // Normalize: strip protocol, trailing slashes, www prefix, lowercase
+    const normalize = (s: string) =>
+      s.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/+$/, '').toLowerCase()
+    return normalize(title) === normalize(url)
   })
 
   const missingArchives = allBookmarks.filter((b) => !b.hasArchive)
