@@ -5,7 +5,7 @@ The repository includes a maintenance command and a user-level `systemd` timer t
 ## What it does
 
 - Refreshes bookmark metadata from the source URL, including the current title.
-- Recalculates the Inbox workflow tags used by the webapp: `leer-hoy`, `rapido`, `foco`, and `inspiracion`.
+- Recalculates the Inbox workflow tags used by the webapp: `read-today`, `quickRead`, `focus`, and `inspiration`.
 - Leaves non-workflow tags untouched.
 
 ## Manual run

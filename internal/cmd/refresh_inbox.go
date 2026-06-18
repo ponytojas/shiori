@@ -10,10 +10,10 @@ import (
 )
 
 var operationalWorkflowTags = map[string]struct{}{
-	"leer-hoy":    {},
-	"rapido":      {},
-	"foco":        {},
-	"inspiracion": {},
+	"read-today":    {},
+	"quickRead":      {},
+	"focus":        {},
+	"inspiration": {},
 }
 
 func refreshInboxCmd() *cobra.Command {
@@ -125,9 +125,9 @@ func classifyWorkflowTags(bookmark model.BookmarkDTO, now time.Time) []string {
 		tag   string
 		score int
 	}{
-		{tag: "rapido", score: quickScore},
-		{tag: "foco", score: focusScore},
-		{tag: "inspiracion", score: inspirationScore},
+		{tag: "quickRead", score: quickScore},
+		{tag: "focus", score: focusScore},
+		{tag: "inspiration", score: inspirationScore},
 	} {
 		if candidate.score > highest {
 			selected = candidate.tag
@@ -141,7 +141,7 @@ func classifyWorkflowTags(bookmark model.BookmarkDTO, now time.Time) []string {
 	}
 
 	if shouldTagForToday(bookmark, now, selected, quickScore, focusScore, inspirationScore) {
-		result = append(result, "leer-hoy")
+		result = append(result, "read-today")
 	}
 
 	sort.Strings(result)
@@ -197,7 +197,7 @@ func mergeWorkflowTags(existing []model.TagDTO, nextWorkflowTags []string) []mod
 }
 
 func shouldTagForToday(bookmark model.BookmarkDTO, now time.Time, selected string, quickScore, focusScore, inspirationScore int) bool {
-	if selected == "rapido" && quickScore >= 2 {
+	if selected == "quickRead" && quickScore >= 2 {
 		return true
 	}
 

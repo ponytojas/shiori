@@ -16,8 +16,8 @@ Use the existing bookmark list plus existing bookmark tags as the workflow state
 
 Implement a lightweight workflow on top of existing bookmarks:
 
-- Use tags such as `leer-hoy`, `rapido`, `foco`, and `inspiracion`.
-- Add a small Inbox reading panel that highlights `leer-hoy`.
+- Use tags such as `read-today`, `quickRead`, `focus`, and `inspiration`.
+- Add a small Inbox reading panel that highlights `read-today`.
 - Add a URL-driven filter in the Inbox so the user can switch between all bookmarks and each workflow tag.
 - Add a lightweight search field in Inbox so the shortlist remains usable when the list grows.
 - Allow toggling the operational tags directly from the Inbox items instead of forcing a separate admin flow.
@@ -28,7 +28,7 @@ Implement a lightweight workflow on top of existing bookmarks:
 - No schema changes.
 - No second store.
 - No background syncing logic.
-- Visible value in one session: the user can mark a few bookmarks with `leer-hoy` and immediately get a shortlist.
+- Visible value in one session: the user can mark a few bookmarks with `read-today` and immediately get a shortlist.
 
 ## Non-Goals For This MVP
 
@@ -46,6 +46,6 @@ Implement a lightweight workflow on top of existing bookmarks:
 ## How To Use
 
 1. Open Inbox (`/bookmarks`).
-2. Mark a few items with `leer-hoy`, `rapido`, `foco`, or `inspiracion`.
+2. Mark a few items with `read-today`, `quickRead`, `focus`, or `inspiration`.
 3. Use the top filter chips to switch context.
 4. Use the search box to reduce the visible set without leaving Inbox.

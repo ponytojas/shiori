@@ -1,6 +1,6 @@
 import type { ModelBookmarkDTO } from '@/client'
 
-export type OperationalReadingMode = 'all' | 'leer-hoy' | 'rapido' | 'foco' | 'inspiracion'
+export type OperationalReadingMode = 'all' | 'read-today' | 'quickRead' | 'focus' | 'inspiration'
 
 export type OperationalReadingPreset = {
   mode: OperationalReadingMode
@@ -10,15 +10,15 @@ export type OperationalReadingPreset = {
 
 export const OPERATIONAL_READING_PRESETS: OperationalReadingPreset[] = [
   { mode: 'all', label: 'Inbox', description: 'All active bookmarks' },
-  { mode: 'leer-hoy', label: 'Today', description: 'Shortlist for today' },
-  { mode: 'rapido', label: 'Quick reads', description: 'Fast reads' },
-  { mode: 'foco', label: 'Focus', description: 'Deep work reading' },
-  { mode: 'inspiracion', label: 'Inspiration', description: 'Idea fuel' },
+  { mode: 'read-today', label: 'Today', description: 'Shortlist for today' },
+  { mode: 'quickRead', label: 'Quick reads', description: 'Fast reads' },
+  { mode: 'focus', label: 'Focus', description: 'Deep work reading' },
+  { mode: 'inspiration', label: 'Inspiration', description: 'Idea fuel' },
 ]
 
-export const OPERATIONAL_TAGS: Exclude<OperationalReadingMode, 'all'>[] = ['leer-hoy', 'rapido', 'foco', 'inspiracion']
+export const OPERATIONAL_TAGS: Exclude<OperationalReadingMode, 'all'>[] = ['read-today', 'quickRead', 'focus', 'inspiration']
 
-const operationalModes = new Set<OperationalReadingMode>(['all', 'leer-hoy', 'rapido', 'foco', 'inspiracion'])
+const operationalModes = new Set<OperationalReadingMode>(['all', 'read-today', 'quickRead', 'focus', 'inspiration'])
 
 export function parseOperationalReadingMode(rawValue: string | null): OperationalReadingMode {
   if (rawValue && operationalModes.has(rawValue as OperationalReadingMode)) {

@@ -19,7 +19,7 @@ func TestClassifyWorkflowTags(t *testing.T) {
 			ModifiedAt: "2026-03-20 08:00:00",
 		}, now)
 
-		assert.Equal(t, []string{"leer-hoy", "rapido"}, tags)
+		assert.Equal(t, []string{"read-today", "quickRead"}, tags)
 	})
 
 	t.Run("marks long technical content as focus", func(t *testing.T) {
@@ -31,7 +31,7 @@ func TestClassifyWorkflowTags(t *testing.T) {
 			ModifiedAt: "2026-03-10 08:00:00",
 		}, now)
 
-		assert.Equal(t, []string{"foco"}, tags)
+		assert.Equal(t, []string{"focus"}, tags)
 	})
 
 	t.Run("marks design showcases as inspiration", func(t *testing.T) {
@@ -42,23 +42,23 @@ func TestClassifyWorkflowTags(t *testing.T) {
 			ModifiedAt: "2026-03-18 08:00:00",
 		}, now)
 
-		assert.Equal(t, []string{"inspiracion", "leer-hoy"}, tags)
+		assert.Equal(t, []string{"inspiration", "read-today"}, tags)
 	})
 }
 
 func TestMergeWorkflowTags(t *testing.T) {
 	existing := []model.TagDTO{
 		{Tag: model.Tag{ID: 1, Name: "personal"}},
-		{Tag: model.Tag{ID: 2, Name: "leer-hoy"}},
-		{Tag: model.Tag{ID: 3, Name: "rapido"}},
+		{Tag: model.Tag{ID: 2, Name: "read-today"}},
+		{Tag: model.Tag{ID: 3, Name: "quickRead"}},
 	}
 
-	merged := mergeWorkflowTags(existing, []string{"foco"})
+	merged := mergeWorkflowTags(existing, []string{"focus"})
 
 	assert.Contains(t, merged, model.TagDTO{Tag: model.Tag{ID: 1, Name: "personal"}})
-	assert.Contains(t, merged, model.TagDTO{Tag: model.Tag{ID: 2, Name: "leer-hoy"}, Deleted: true})
-	assert.Contains(t, merged, model.TagDTO{Tag: model.Tag{ID: 3, Name: "rapido"}, Deleted: true})
-	assert.Contains(t, merged, model.TagDTO{Tag: model.Tag{Name: "foco"}})
+	assert.Contains(t, merged, model.TagDTO{Tag: model.Tag{ID: 2, Name: "read-today"}, Deleted: true})
+	assert.Contains(t, merged, model.TagDTO{Tag: model.Tag{ID: 3, Name: "quickRead"}, Deleted: true})
+	assert.Contains(t, merged, model.TagDTO{Tag: model.Tag{Name: "focus"}})
 }
 
 func repeatWords(word string, count int) string {
